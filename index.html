@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#7C3AED">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <title>追文记 · 个人阅读工作台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ═══ High-Fidelity Claymorphism ═══
+     * 数字黏土美学：糖果店配色 + 4 层阴影栈 + 超圆角 + 玻璃软糖卡片 */
+    /* 画布 & 表面：永远不用纯白，极淡薰衣草白打底 */
+    --bg:#FBFAFE;
+    --surface:#FFFFFF;
+    --surface-glass:rgba(255,255,255,.62);
+    --surface-glass-2:rgba(255,255,255,.80);
+
+    /* 文字：高对比柔炭黑，次级最低到 #635F69（绝不更浅） */
+    --text:#332F3A;            /* 主文字（柔炭黑） */
+    --text-2:#635F69;          /* 次级（暗薰衣草灰，可读下限） */
+    --text-3:#8B8794;          /* 静默（仅最弱提示） */
+
+    /* 糖果店强调色 */
+    --accent:#7C3AED;          /* 主紫（CTA / 品牌） */
+    --accent-2:#A78BFA;        /* 浅紫（渐变起点） */
+    --accent-d:#6D28D9;        /* 深紫（hover） */
+    --pink:#DB2777;            /* 热粉 */
+    --pink-2:#F472B6;
+    --blue:#0EA5E9;            /* 天蓝 */
+    --green:#10B981;           /* 翡翠绿 */
+    --amber:#F59E0B;           /* 琥珀 */
+
+    /* 状态语义色（融入 Clay 糖果色板） */
+    --c-want:#0EA5E9;          /* 入坑：天蓝（新/信息） */
+    --c-reading:#7C3AED;       /* 在读：主紫（活跃） */
+    --c-serial:#F59E0B;       /* 追更：琥珀（持续） */
+    --c-finished:#10B981;      /* 读完：翡翠绿（成功） */
+    --c-dropped:#DB2777;       /* 弃文：热粉 */
+
+    /* 边线 & 弱化层 */
+    --line:rgba(124,58,237,.08);
+    --line-2:#F4F1F8;
+    --accent-weak:rgba(124,58,237,.10);
+    --accent-line:rgba(124,58,237,.22);
+
+    /* 超圆角（绝对数值，最小不低于 14px） */
+    --r-card:32px; --r-lg:48px; --r-btn:20px; --r-sm:14px;
+
+    /* 4 层 Clay 阴影栈 */
+    --clay-surface: 30px 30px 60px #EDEAF4, -30px -30px 60px #FFFFFF, inset 10px 10px 20px rgba(139,92,246,.02), inset -10px -10px 20px rgba(255,255,255,.7);
+    --clay-card: 14px 14px 30px rgba(160,150,180,.09), -10px -10px 24px rgba(255,255,255,.92), inset 6px 6px 12px rgba(139,92,246,.012), inset -6px -6px 12px rgba(255,255,255,1);
+    --clay-card-hover: 18px 18px 38px rgba(160,150,180,.13), -12px -12px 28px rgba(255,255,255,.95), inset 6px 6px 12px rgba(139,92,246,.018), inset -6px -6px 12px rgba(255,255,255,1);
+    --clay-btn: 8px 8px 18px rgba(139,92,246,.11), -8px -8px 16px rgba(255,255,255,.6), inset 4px 4px 8px rgba(255,255,255,.5), inset -4px -4px 8px rgba(0,0,0,.06);
+    --clay-btn-hover: 10px 10px 20px rgba(139,92,246,.15), -9px -9px 18px rgba(255,255,255,.62), inset 4px 4px 8px rgba(255,255,255,.52), inset -4px -4px 8px rgba(0,0,0,.06);
+    --clay-pressed: inset 10px 10px 20px #ECEAF2, inset -10px -10px 20px #FFFFFF;
+    --clay-chip: 5px 5px 12px rgba(160,150,180,.08), -4px -4px 10px #FFFFFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.6;padding-bottom:calc(120px + env(safe-area-inset-bottom));font-size:15px;position:relative;min-height:100vh;min-height:100dvh;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+  .wrap{max-width:680px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+
+  /* 漂浮的背景 blob：永远不用平铺纯色背景 */
+  .blob-bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+  .blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.32}
+  .blob.b1{width:46vh;height:46vh;background:rgba(124,58,237,.07);top:-12%;left:-10%;animation:clay-float 11s ease-in-out infinite}
+  .blob.b2{width:42vh;height:42vh;background:rgba(219,39,119,.06);top:16%;right:-14%;animation:clay-float-slow 13s ease-in-out infinite}
+  .blob.b3{width:40vh;height:40vh;background:rgba(14,165,233,.06);bottom:-12%;left:10%;animation:clay-float 9s ease-in-out infinite;animation-delay:2s}
+  .blob.b4{width:32vh;height:32vh;background:rgba(16,185,129,.06);bottom:8%;right:6%;animation:clay-float-slow 12s ease-in-out infinite;animation-delay:1s}
+
+  /* 顶部：轻量玻璃卡，仅品牌图标用强调色，去掉大色块 */
+  header{background:linear-gradient(135deg,rgba(167,139,250,.10),rgba(244,114,182,.07));
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:var(--text);
+    max-width:680px;margin:18px auto 0;padding:22px 28px;border-radius:var(--r-lg);
+    border:1px solid rgba(255,255,255,.7);box-shadow:var(--clay-card);position:relative;overflow:hidden}
+  header::after{content:'';position:absolute;top:-40%;right:-12%;width:220px;height:220px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.55),transparent 70%);pointer-events:none}
+  header .wrap{max-width:none;margin:0;padding:0;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:1}
+  .brand{font-family:"Nunito",sans-serif;font-size:21px;font-weight:800;letter-spacing:.5px;color:var(--text);display:flex;align-items:center;gap:9px}
+  .brand small{font-weight:600;font-size:12px;color:var(--text-2);letter-spacing:0}
+  .brand-ico{width:24px;height:24px;flex-shrink:0}
+  .brand-ico svg{width:100%;height:100%;display:block;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  #todayTip{color:var(--text-2);font-size:12px;font-weight:500}
+
+  /* 底部导航：5 格（左2 + 中间凸起加书 + 右2），全宽玻璃条 */
+  nav{position:fixed;bottom:0;left:0;right:0;z-index:50;display:flex;align-items:flex-start;
+    background:rgba(255,255,255,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(124,58,237,.06);
+    padding:8px 0 calc(8px + env(safe-area-inset-bottom))}
+  nav .tab{flex:1;text-align:center;padding:8px 0 4px;color:var(--text-3);font-size:11px;cursor:pointer;user-select:none;transition:.2s;font-weight:600}
+  nav .tab .ico{width:23px;height:23px;display:block;margin:0 auto 3px;transition:transform .2s}
+  nav .tab .ico svg{width:100%;height:100%;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  nav .tab.active{color:var(--accent);font-weight:800}
+  nav .tab.active .ico{transform:translateY(-2px)}
+  nav .tab.add{flex:0 0 auto;width:68px;align-self:center;position:relative}
+  nav .tab.add .add-ico{position:absolute;top:-24px;left:50%;transform:translateX(-50%);
+    width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#9D7BF5,#7C3AED);color:#fff;font-size:30px;font-weight:300;line-height:1;
+    box-shadow:0 10px 22px rgba(124,58,237,.42);border:4px solid var(--bg)}
+  nav .tab.add:active .add-ico{transform:translateX(-50%) scale(.93)}
+
+  /* 通用卡片：玻璃-黏土混合，超圆角，4 层阴影，悬停浮起 */
+  .card{background:var(--surface-glass);backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05);
+    border:1px solid rgba(255,255,255,.7);border-radius:var(--r-card);
+    padding:22px;margin-top:18px;box-shadow:var(--clay-card);transition:transform .4s,box-shadow .4s}
+  .card:hover{transform:translateY(-4px);box-shadow:var(--clay-card-hover)}
+  .card-title{font-family:"Nunito",sans-serif;font-size:16px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;color:var(--text)}
+  .muted{color:var(--text-3)}
+  .row{display:flex;align-items:center;gap:8px}
+
+  /* 页容器 */
+  .page{display:none;animation:fade .26s ease}
+  .page.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* 顶部数据条：玻璃黏土卡 */
+  .hero{background:var(--surface-glass);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.7);border-radius:var(--r-card);
+    padding:24px 16px;margin-top:18px;display:flex;justify-content:space-around;text-align:center;box-shadow:var(--clay-card)}
+  .hero>div{flex:1}
+  .hero>div+div{border-left:1px solid var(--line)}
+  .hero .h-num{font-family:"Nunito",sans-serif;font-size:28px;font-weight:800;color:var(--text);line-height:1.1;letter-spacing:.5px}
+  .hero .h-lab{font-size:12px;color:var(--text-3);margin-top:6px;font-weight:600}
+
+  /* 按钮：渐变紫，超圆角，点击压缩 */
+  .btn{border:none;border-radius:var(--r-btn);padding:12px 18px;font-size:14px;cursor:pointer;font-weight:700;transition:.18s;letter-spacing:.3px;font-family:"Nunito",sans-serif}
+  .btn:active{transform:scale(.92)}
+  .btn-primary{background:linear-gradient(135deg,#A78BFA,#7C3AED);color:#fff;box-shadow:var(--clay-btn)}
+  .btn-primary:hover{box-shadow:var(--clay-btn-hover);transform:translateY(-1px)}
+  .btn-ghost{background:var(--surface);color:var(--accent);border:1px solid var(--line);box-shadow:var(--clay-chip)}
+  .btn-ghost:hover{border-color:var(--accent-line);background:var(--accent-weak);transform:translateY(-1px)}
+  .btn-block{width:100%}
+  .btn-sm{padding:9px 15px;font-size:13px;border-radius:16px}
+  .btn-danger{background:var(--surface);color:var(--pink);border:1px solid rgba(219,39,119,.18);box-shadow:var(--clay-chip)}
+  .btn-danger:hover{border-color:var(--pink);transform:translateY(-1px)}
+
+  /* 筛选条：黏土小药丸 */
+  .filters{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+  .chip{padding:8px 16px;border-radius:var(--r-btn);background:var(--surface);border:1px solid var(--line);
+    font-size:13px;color:var(--text-2);cursor:pointer;font-weight:700;transition:.18s;box-shadow:var(--clay-chip)}
+  .chip:hover{transform:translateY(-1px)}
+  .chip:active{transform:scale(.92)}
+  .chip.active{background:var(--accent-weak);color:var(--accent);border-color:var(--accent-line);box-shadow:var(--clay-chip)}
+
+  /* 书卡 */
+  .book{display:flex;gap:16px;cursor:pointer;align-items:flex-start}
+  .cover{width:64px;height:90px;border-radius:18px;object-fit:cover;flex-shrink:0;
+    background:linear-gradient(145deg,#EDE9F5,#E0DAEE);display:flex;align-items:center;justify-content:center;
+    font-family:"Nunito",sans-serif;font-size:28px;font-weight:800;color:var(--text);letter-spacing:1px;box-shadow:var(--clay-chip)}
+  .book-main{flex:1;min-width:0}
+  .book-title{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+  .book-author{font-size:12.5px;color:var(--text-3);margin-top:3px}
+  .tags{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .tag{font-size:11px;padding:4px 11px;border-radius:999px;border:1px solid var(--line);
+    background:var(--line-2);color:var(--text-2);font-weight:700}
+  .tag.blue{background:rgba(14,165,233,.09);color:#0C8FC7;border-color:transparent}
+  .tag.stat{font-weight:800}
+  .stat-want{background:rgba(14,165,233,.10);color:#0C8FC7;border-color:transparent}
+  .stat-reading{background:rgba(124,58,237,.10);color:#6D28D9;border-color:transparent}
+  .stat-serial{background:rgba(245,158,11,.11);color:#B7791F;border-color:transparent}
+  .stat-finished{background:rgba(16,185,129,.10);color:#0B8A60;border-color:transparent}
+  .stat-dropped{background:rgba(219,39,119,.09);color:#C2185B;border-color:transparent}
+  .stars-sm{color:var(--amber);font-size:12px;margin-top:6px;letter-spacing:1px}
+  .prog{display:flex;align-items:center;gap:10px;margin-top:11px}
+  .bar{flex:1;height:8px;background:var(--line-2);border-radius:999px;overflow:hidden;box-shadow:var(--clay-pressed)}
+  .bar-fill{height:100%;background:linear-gradient(90deg,#A78BFA,#7C3AED);border-radius:999px;transition:width .35s}
+  .prog-txt{font-size:11px;color:var(--text-3);width:58px;text-align:right;font-weight:700}
+  .book-meta{font-size:11.5px;color:var(--text-3);margin-top:6px}
+
+  /* ============ 书架：紧凑网格 + 书名首字小图标 ============ */
+  #bookList{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:14px;margin-top:14px}
+  #bookList .card{margin-top:0}
+  #bookList .empty{grid-column:1 / -1}
+  .book-card{display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 10px;cursor:pointer;position:relative;-webkit-touch-callout:none}
+  .cover-ico{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+    font-family:"Nunito",sans-serif;font-size:24px;font-weight:800;color:var(--text);letter-spacing:1px;
+    background:linear-gradient(145deg,#EDE9F5,#E0DAEE);box-shadow:var(--clay-chip);margin-bottom:10px}
+  .book-card .book-title{font-size:13px;font-weight:700;line-height:1.3;color:var(--text);width:100%;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .book-card .tags{margin-top:8px;justify-content:center}
+  .book-card .prog{margin-top:9px;width:100%}
+  .book-card .prog-txt{display:none}
+  .book-card .book-edit{top:8px;right:8px}
+
+  /* 快速记一笔 */
+  .quicklog{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
+  .quicklog .ql-chip{padding:9px 15px;border-radius:14px;border:1px solid var(--line);background:var(--surface);
+    font-size:13px;cursor:pointer;color:var(--text);font-weight:700;transition:.18s;box-shadow:var(--clay-chip)}
+  .quicklog .ql-chip:hover{color:var(--accent);border-color:var(--accent-line);transform:translateY(-1px)}
+  .quicklog .ql-chip:active{transform:scale(.92)}
+  .quicklog .ql-date{padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);-webkit-appearance:none;appearance:none;height:38px}
+  .ql-tip{font-size:11.5px;color:var(--text-3);margin-top:10px;line-height:1.7}
+  details.timer-fold{margin-top:14px}
+  details.timer-fold summary{font-size:12.5px;color:var(--text-2);cursor:pointer;user-select:none;font-weight:600}
+  .checkin{margin-top:18px;display:flex;gap:12px;align-items:center}
+
+  /* 空状态 */
+  .empty{text-align:center;color:var(--text-3);padding:60px 0}
+  .empty .e-ico{width:56px;height:56px;margin:0 auto 14px}
+  .empty .e-ico svg{width:100%;height:100%;display:block;stroke:#C4BCCC;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+  /* 弹层：玻璃软糖抽屉 */
+  .mask{position:fixed;inset:0;background:rgba(51,47,58,.45);z-index:9999;display:none;align-items:center;justify-content:center;overflow:hidden}
+  .mask.show{display:flex;touch-action:none;-webkit-overflow-scrolling:unset}
+  .sheet{background:var(--surface-glass);backdrop-filter:blur(28px) saturate(1.1);-webkit-backdrop-filter:blur(28px) saturate(1.1);
+    width:100%;max-width:480px;margin:auto;border-radius:28px;padding:calc(26px + env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) calc(34px + env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));
+    max-height:90vh;max-height:90dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;box-shadow:var(--clay-card);animation:up .3s cubic-bezier(.22,.61,.36,1)}
+  @keyframes up{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+  .sheet h3{font-family:"Nunito",sans-serif;font-size:19px;font-weight:800;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;color:var(--text)}
+  .sheet h3 .x{color:var(--text-3);font-size:24px;cursor:pointer;font-weight:400;width:34px;height:34px;
+    display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--line-2);transition:.18s}
+  .sheet h3 .x:hover{background:var(--accent-weak);color:var(--accent)}
+  .field{display:flex;flex-direction:column;gap:6px;width:100%;margin-bottom:14px}
+  .field label{font-size:13px;color:var(--text-2);font-weight:700;line-height:1.4}
+  .field input,.field select,.field textarea{width:100%;box-sizing:border-box;border:0;border-radius:16px;height:46px;line-height:1.2;
+    padding:13px 14px;font-size:16px;font-family:inherit;background:#EFEBF5;color:var(--text);transition:.18s;box-shadow:var(--clay-pressed)}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;background:#fff;box-shadow:0 0 0 4px rgba(124,58,237,.18)}
+  .field textarea{min-height:80px;resize:vertical}
+  .field .req{color:var(--pink)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px;margin-bottom:14px}
+  .form-grid>.field{margin-bottom:0;min-width:0}
+  .form-grid .field.span2{grid-column:1/-1}
+  .form-grid .field input[type=date]{min-width:0;width:100%!important;box-sizing:border-box!important;
+    -webkit-appearance:none;appearance:none;height:46px!important;line-height:1.2}
+
+  /* 详情 */
+  .d-head{display:flex;gap:16px}
+  .d-cover{width:88px;height:124px;border-radius:20px;object-fit:cover;flex-shrink:0;
+    background:linear-gradient(145deg,#EDE9F5,#E0DAEE);display:flex;align-items:center;justify-content:center;
+    font-family:"Nunito",sans-serif;font-size:36px;font-weight:800;color:var(--text);letter-spacing:1px;box-shadow:var(--clay-chip)}
+  .d-title{font-family:"Nunito",sans-serif;font-size:21px;font-weight:800;line-height:1.3;color:var(--text)}
+  .d-author{font-size:13px;color:var(--text-3);margin-top:5px}
+  .status-bar{display:flex;gap:8px;margin-top:18px}
+  .status-bar .s{flex:1;text-align:center;padding:12px 0;border-radius:16px;background:var(--line-2);
+    font-size:13px;color:var(--text-2);cursor:pointer;border:1px solid transparent;font-weight:700;transition:.18s;box-shadow:var(--clay-pressed)}
+  .status-bar .s.on{background:var(--accent-weak);color:var(--accent);border-color:var(--accent-line);box-shadow:var(--clay-chip)}
+  .stars{font-size:30px;color:var(--line);cursor:pointer;letter-spacing:6px;user-select:none}
+  .stars .on{color:var(--amber)}
+  .note-item{border-left:4px solid var(--accent);padding:10px 0 10px 14px;margin-top:12px;background:var(--line-2);border-radius:0 16px 16px 0}
+  .note-item.quote{border-left-color:var(--text-3)}
+  .note-type{font-size:11px;color:var(--accent);font-weight:800}
+  .note-item.quote .note-type{color:var(--text-2)}
+  .note-content{font-size:14px;margin-top:6px;white-space:pre-wrap;color:var(--text);line-height:1.7}
+  .note-meta{font-size:11px;color:var(--text-3);margin-top:8px;display:flex;gap:10px;flex-wrap:wrap}
+  .note-del{color:var(--text-2);cursor:pointer;font-weight:700}
+
+  /* 统计 */
+  .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .metric{background:var(--surface-glass);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.7);border-radius:var(--r-card);padding:22px;text-align:center;
+    box-shadow:var(--clay-card);transition:transform .4s,box-shadow .4s}
+  .metric:hover{transform:translateY(-5px);box-shadow:var(--clay-card-hover)}
+  .metric .m-num{font-family:"Nunito",sans-serif;font-size:28px;font-weight:800;color:var(--text);letter-spacing:.5px}
+  .metric .m-lab{font-size:12px;color:var(--text-3);margin-top:6px;font-weight:600}
+  .metric .m-ico{margin:0 auto 8px;display:flex;align-items:center;justify-content:center}
+  .metric .m-ico svg{width:26px;height:26px}
+  .goal-bar{height:10px;background:var(--line-2);border-radius:999px;overflow:hidden;margin-top:12px;box-shadow:var(--clay-pressed)}
+  .goal-fill{height:100%;background:linear-gradient(90deg,#A78BFA,#7C3AED);border-radius:999px;transition:width .4s}
+  /* 状态分布：Clay 糖果色堆叠条 */
+  .dist{display:flex;height:16px;border-radius:999px;overflow:hidden;margin-top:14px;background:var(--line-2);box-shadow:var(--clay-pressed)}
+  .dist span{height:100%}
+  .dist-legend{display:flex;gap:18px;margin-top:14px;font-size:12px;color:var(--text-2);flex-wrap:wrap;font-weight:600}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:999px;margin-right:6px;vertical-align:middle;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .trend{display:flex;align-items:flex-end;gap:8px;height:130px;margin-top:16px}
+  .trend .t{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+  .trend .t-bar{width:60%;background:linear-gradient(180deg,#A78BFA,#7C3AED);border-radius:8px 8px 0 0;min-height:3px;transition:height .4s;box-shadow:4px 4px 10px rgba(124,58,237,.14)}
+  .trend .t-lab{font-size:10px;color:var(--text-3);margin-top:8px}
+  .trend .t-val{font-size:10px;color:var(--accent);margin-bottom:5px;font-weight:700}
+  /* ============ 阅读成长（静态里程碑）============ */
+  .grow-card{background:var(--surface-glass);border:1px solid var(--line)}
+  .grow-static{display:flex;align-items:center;gap:16px;padding:6px 2px}
+  .grow-static-ico{width:62px;height:62px;flex:0 0 auto;border-radius:18px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#F3EDFF,#E9E0FB);box-shadow:var(--clay-card);color:var(--accent)}
+  .grow-static-ico svg{width:34px;height:34px}
+  .grow-static-body{flex:1;min-width:0}
+  .grow-static-num{font-size:18px;font-weight:800;color:var(--accent-d);line-height:1.3}
+  .grow-static-num span{font-size:26px}
+  .grow-static-next{font-size:12.5px;color:var(--text-2);margin-top:5px;line-height:1.55}
+
+
+  /* 我的 */
+  .set-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--line)}
+  .set-row:last-child{border-bottom:none}
+  .set-row .s-lab{font-size:14px;font-weight:600;color:var(--text)}
+  .switch{width:50px;height:30px;border-radius:999px;background:var(--line-2);position:relative;cursor:pointer;transition:.25s;box-shadow:var(--clay-pressed)}
+  .switch.on{background:linear-gradient(135deg,#A78BFA,#7C3AED)}
+  .switch .knob{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.25s;box-shadow:0 2px 5px rgba(0,0,0,.18)}
+  .switch.on .knob{left:23px}
+  .stepper{display:flex;align-items:center;gap:14px}
+  .stepper button{width:36px;height:36px;border-radius:12px;border:0;background:var(--surface);font-size:19px;cursor:pointer;color:var(--accent);font-weight:800;font-family:inherit;box-shadow:var(--clay-chip);transition:.15s}
+  .stepper button:hover{transform:translateY(-1px)}
+  .stepper button:active{transform:scale(.9)}
+  .stepper .val{font-family:"Nunito",sans-serif;font-size:18px;font-weight:800;min-width:30px;text-align:center;color:var(--text)}
+  .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(51,47,58,.92);color:#fff;
+    padding:13px 24px;border-radius:18px;font-size:14px;z-index:200;opacity:0;pointer-events:none;transition:.2s;font-weight:700;box-shadow:var(--clay-btn)}
+  .toast.show{opacity:1}
+  .about{font-size:12.5px;color:var(--text-3);line-height:1.85}
+
+  /* ============ 日历 ============ */
+  /* 日历色块按「阅读状态」取 Clay 糖果色，既直观又统一 */
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .cal-head .cal-nav{width:40px;height:40px;border-radius:14px;border:0;background:var(--surface);
+    font-size:18px;cursor:pointer;color:var(--accent);font-weight:800;font-family:inherit;box-shadow:var(--clay-chip);transition:.15s}
+  .cal-head .cal-nav:hover{transform:translateY(-1px)}
+  .cal-head .cal-nav:active{transform:scale(.92)}
+  .cal-head .cal-ym{font-family:"Nunito",sans-serif;font-size:18px;font-weight:800;color:var(--text)}
+  .cal-more{font-size:9px;color:var(--text-3);line-height:1}
+  .cal-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px;font-size:12px;color:var(--text-2);font-weight:600}
+  .cal-legend .lg{display:flex;align-items:center;gap:6px;max-width:46%}
+  .cal-legend .lg span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-legend .sw{width:12px;height:12px;border-radius:999px;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+  .day-book{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .day-book:last-child{border-bottom:none}
+  .day-book .sw{width:13px;height:13px;border-radius:999px;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+  .day-book .db-t{flex:1;min-width:0;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+  .day-book .db-d{font-size:12px;color:var(--text-3);flex-shrink:0}
+  /* 日视图弹窗：书籍较多时内部滚动,避免撑破弹窗 */
+  #dvBody{max-height:64vh;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:6px}
+  #dvBody .day-book:first-child{padding-top:4px}
+  .cal-month-sum{display:flex;gap:18px;margin-top:6px;font-size:12px;color:var(--text-2);flex-wrap:wrap;font-weight:600}
+
+  .hist-item{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .hist-item:last-child{border-bottom:none}
+  .hist-item .h-ico{width:34px;height:46px;border-radius:8px;background:linear-gradient(145deg,#EDE9F5,#E0DAEE);display:flex;align-items:center;justify-content:center;font-family:"Nunito",sans-serif;font-weight:800;color:var(--text);font-size:16px;flex-shrink:0;box-shadow:var(--clay-chip)}
+  .hist-item .h-main{flex:1;min-width:0}
+  .hist-item .h-title{font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hist-item .h-sub{font-size:12px;color:var(--text-3)}
+  .hist-item .h-date{font-size:12px;color:var(--green);font-weight:700;flex-shrink:0;text-align:right}
+
+  /* 书架卡片编辑按钮 */
+  .card .book{position:relative}
+  .book-edit{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:12px;border:0;
+    background:var(--surface);color:var(--accent);cursor:pointer;font-size:15px;line-height:1;
+    box-shadow:var(--clay-chip);display:flex;align-items:center;justify-content:center;transition:.15s;z-index:2}
+  .book-edit:hover{transform:translateY(-1px);background:var(--accent-weak)}
+  .book-edit:active{transform:scale(.92)}
+
+  /* 书架快捷标记：今日已读（仅追更书显示入口；标记后显示徽章；置于进度条上方） */
+  .book-quick-row{display:flex;align-items:center;justify-content:center;margin-top:8px;min-height:0;width:100%;flex-wrap:nowrap}
+  .book-quick-pill{display:inline-flex;align-items:center;gap:5px;border:0;background:var(--accent-weak);
+    color:var(--accent);font-size:11.5px;font-weight:800;padding:5px 13px;border-radius:999px;cursor:pointer;
+    font-family:inherit;box-shadow:var(--clay-chip);transition:.15s;line-height:1;
+    white-space:nowrap;flex-shrink:0}   /* 防止窄屏下「今日已读」换行把卡片拉长 */
+  .book-quick-pill:hover{transform:translateY(-1px)}
+  .book-quick-pill:active{transform:scale(.96)}
+  .book-quick-pill svg{width:13px;height:13px;flex-shrink:0}
+  /* 今日已读徽章：标记成功后显示在进度条上方,与入口互斥,让用户一目了然 */
+  .read-today-badge{display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#34D399,#10B981);
+    color:#fff;font-size:11px;font-weight:800;padding:4px 13px;border-radius:999px;
+    box-shadow:0 2px 7px rgba(16,185,129,.38);letter-spacing:.3px;white-space:nowrap;line-height:1;
+    flex-shrink:0}   /* 同防止窄屏挤压换行 */
+  .read-today-badge svg{width:13px;height:13px;flex-shrink:0}
+  /* 超窄屏(如小屏手机三列)进一步压缩今日已读胶囊,避免溢出或撑高卡片 */
+  @media (max-width:360px){
+    .book-quick-pill{font-size:10.5px;padding:4px 10px;gap:4px}
+    .book-quick-pill svg{width:11px;height:11px}
+    .read-today-badge{font-size:10px;padding:3px 10px;gap:4px}
+    .read-today-badge svg{width:11px;height:11px}
+  }
+  /* 添加书籍：重名提醒（弹窗内联提示） */
+  .dup-warn{display:flex;gap:12px;align-items:flex-start;margin:4px 0 14px;padding:14px 16px;border-radius:18px;
+    background:linear-gradient(135deg,#FFF7ED,#FEF3C7);border:1px solid #FCD34D;box-shadow:var(--clay-chip)}
+  .dup-warn-ico{width:30px;height:30px;flex:0 0 auto;color:#D97706;display:flex;align-items:center;justify-content:center}
+  .dup-warn-ico svg{width:26px;height:26px}
+  .dup-warn-body{flex:1;min-width:0}
+  .dup-warn-title{font-family:"Nunito",sans-serif;font-size:14.5px;font-weight:800;color:#B45309}
+  .dup-warn-sub{font-size:12.5px;color:#92400E;margin-top:3px;line-height:1.5}
+  .dup-warn-actions{display:flex;gap:10px;margin-top:12px}
+  /* 书架快捷菜单：底部动作表,单层、轻量,无深层弹窗 */
+  #quickMenu{align-items:flex-end}
+  .sheet-quick{width:100%;max-width:none;margin:0;border-radius:26px 26px 0 0;
+    padding:18px max(22px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));
+    animation:sheetUp .28s cubic-bezier(.22,.61,.36,1)}
+  @keyframes sheetUp{from{transform:translateY(24px);opacity:.55}to{transform:none;opacity:1}}
+  .qm-grab{width:38px;height:4px;border-radius:999px;background:var(--line);margin:0 auto 16px}
+  .qm-title{font-family:"Nunito",sans-serif;font-size:18px;font-weight:800;color:var(--text);text-align:center;line-height:1.35;word-break:break-word}
+  .qm-sub{font-size:12.5px;color:var(--text-3);text-align:center;margin-top:5px;margin-bottom:18px}
+  .qm-btn{width:100%;border:0;background:var(--surface);border-radius:16px;padding:15px;font-size:15px;font-weight:700;
+    color:var(--text);cursor:pointer;font-family:inherit;box-shadow:var(--clay-chip);margin-bottom:10px;transition:.15s}
+  .qm-btn:active{transform:scale(.985)}
+  .qm-btn.qm-primary{background:linear-gradient(135deg,#A78BFA,#7C3AED);color:#fff;box-shadow:var(--clay-btn)}
+  .qm-btn.qm-cancel{background:var(--line-2);color:var(--text-2);box-shadow:var(--clay-pressed);margin-bottom:0}
+
+  /* 日历 月/年 视图切换 */
+  .cal-view-toggle{display:flex;gap:8px;margin-bottom:12px}
+  .cvt{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:10px;
+    font-family:inherit;font-size:13px;font-weight:700;color:var(--text-2);cursor:pointer;box-shadow:var(--clay-chip);transition:.15s}
+  .cvt.on{background:linear-gradient(135deg,#A78BFA,#7C3AED);color:#fff;border-color:transparent}
+  .year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+  /* 年视图容器：手机端横向滚动，桌面端正常 */
+  #yearView{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  .mini-month{background:var(--surface-glass);border:1px solid var(--line);border-radius:18px;padding:10px 11px;box-shadow:var(--clay-chip)}
+  .mini-h{font-size:12px;font-weight:800;color:var(--text);text-align:center;margin-bottom:7px;cursor:pointer}
+  .mini-h:hover{color:var(--accent)}
+  .mini-w{display:grid;grid-template-columns:repeat(7,1fr);font-size:7.5px;color:var(--text-3);text-align:center;margin-bottom:4px;font-weight:700}
+  .mini-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .mini-cell{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:8.5px;color:var(--text-3);border-radius:6px}
+  .mini-cell.out{opacity:0}
+  .mini-cell.chk{background:var(--accent);color:#fff;font-weight:800}
+  .mini-cell.read{box-shadow:inset 0 0 0 1.5px var(--accent-line);color:var(--text-2)}
+  .mini-cell.today{outline:2px solid var(--accent);outline-offset:-2px;font-weight:800;color:var(--text)}
+
+  /* 年视图手机端：3列 + 横向滚动适配，日期对齐标题栏 */
+  @media (max-width:680px){
+    .form-grid{gap:12px 10px}
+    /* year-grid 保持3列，由父容器 #yearView 提供横向滚动 */
+    .year-grid{grid-template-columns:repeat(3,1fr);gap:6px;min-width:min-content}
+    .mini-month{padding:6px 5px;border-radius:12px}
+    .mini-h{font-size:10.5px;margin-bottom:4px}
+    .mini-w{font-size:7px;margin-bottom:2px;gap:0}
+    .mini-g{gap:1px}
+    .mini-cell{font-size:8px;border-radius:4px}
+    /* 隐藏日期字段下的提示文字节省空间 */
+    .form-grid .field .muted{display:none}
+  }
+
+  /* ============ 日历月视图：无边框简洁风格 ============ */
+  /* 7 列等宽网格,无方块/卡片/表格线;每本书以文字色区分,书名截断 4 字 */
+  .cal-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin-top:12px}
+  .cal-wd{text-align:center;font-size:11px;font-weight:800;color:var(--text-3);padding:8px 0 10px}
+  .cal-cell{min-height:72px;min-width:0;padding:7px 2px 8px;display:flex;flex-direction:column;gap:3px;
+    cursor:pointer;position:relative;border:none;background:transparent;overflow:hidden;
+    transition:transform .12s cubic-bezier(.25,1,.5,1),background .15s,box-shadow .15s}
+  .cal-cell:hover{background:var(--accent-weak);transform:scale(1.02);z-index:1}
+  .cal-cell:active{transform:scale(.97)}
+  .cal-cell.out{background:transparent;cursor:default;transform:none}
+  .cal-cell.out:hover{background:transparent}
+  .cal-cell.out .cal-dnum{color:var(--text-3);opacity:.45}
+  .cal-dnum{font-size:12px;font-weight:700;color:var(--text-2);line-height:1.3;align-self:flex-start}
+  .cal-cell.today .cal-dnum{background:var(--accent);color:#fff;border-radius:50%;width:21px;height:21px;
+    display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3)}
+  .cal-cell.sel .cal-dnum{color:var(--accent)}
+  .cal-cell.sel{background:rgba(124,58,237,.14);box-shadow:inset 0 0 0 2px rgba(124,58,237,.2)}
+  .cal-books{display:flex;flex-direction:column;gap:2px;align-items:stretch;overflow:hidden;min-width:0}
+  .cal-bk{font-size:9.5px;line-height:1.15;padding:2px 5px;border-radius:6px;color:#fff;font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;box-shadow:0 1px 3px rgba(124,58,237,.18);
+    cursor:pointer;transition:transform .10s,box-shadow .10s,filter .10s;position:relative}
+  .cal-bk:hover{transform:scale(1.06);box-shadow:0 2px 6px rgba(124,58,237,.28);filter:brightness(1.08)}
+  .cal-bk:active{transform:scale(.93)}
+  .cal-bk.more{background:var(--line-2);color:var(--text-3);text-align:center;font-weight:500;box-shadow:none;cursor:default}
+  .cal-bk.more:hover,.cal-bk.more:active{transform:none;filter:none;box-shadow:none}
+  /* 阅读强度:当天有越多书,背景越深 */
+  .cal-cell.intensity-1{background:rgba(124,58,237,.04)}
+  .cal-cell.intensity-2{background:rgba(124,58,237,.08)}
+  .cal-cell.intensity-3plus{background:rgba(124,58,237,.12)}
+
+  /* ============ 摘抄模块 ============ */
+  .excerpt-item{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .excerpt-item:last-child{border-bottom:none}
+  .excerpt-item .e-quote{color:var(--accent);font-size:20px;line-height:1.1;flex-shrink:0;font-family:"Nunito",sans-serif;font-weight:800}
+  .excerpt-item .e-main{flex:1;min-width:0}
+  .excerpt-item .e-text{font-size:13.5px;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-word}
+  .excerpt-item .e-meta{font-size:11px;color:var(--text-3);margin-top:5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .excerpt-item .e-del{color:var(--pink);cursor:pointer;font-weight:700}
+  .excerpt-item .e-del:hover{text-decoration:underline}
+  .ocr-box{margin-top:10px;padding:9px 12px;border:1px dashed var(--accent-line);border-radius:14px;background:var(--accent-weak);font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ocr-spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--accent);border-top-color:transparent;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ============ UI 细节打磨：统一点击反馈与过渡 ============ */
+  .book-card,.day-book,.hist-item,.excerpt-item,.note-item{transition:transform .14s,background .14s}
+  .book-card:active,.day-book:active,.hist-item:active,.excerpt-item:active,.note-item:active{transform:scale(.985)}
+  .cover-ico{transition:transform .18s}
+  .book-card:active .cover-ico{transform:scale(.92)}
+  .set-row{transition:background .15s}
+  .set-row:active{background:var(--line-2)}
+
+  /* ============ 动画 ============ */
+  @keyframes clay-float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-24px) rotate(2deg)}}
+  @keyframes clay-float-slow{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-34px) rotate(-3deg)}}
+  @keyframes clay-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+  /* 日历月切换:淡入 + 单元格逐行入场 */
+  @keyframes calFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .cal-board{animation:calFadeIn .3s cubic-bezier(.22,1,.36,1) both}
+  /* 日历单元格交错入场 */
+  .cal-cell{animation:calCellIn .25s cubic-bezier(.22,1,.36,1) both}
+  @keyframes calCellIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+
+  /* 无障碍：尊重「减少动态效果」偏好 */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+    .blob-bg{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="blob-bg" aria-hidden="true">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="blob b4"></div>
+</div>
+<header>
+  <div class="wrap">
+    <div class="brand"><span class="brand-ico"><svg viewBox="0 0 24 24"><path d="M12 6c-1.8-1.4-4.2-2-8-2v14c3.8 0 6.2.6 8 2 1.8-1.4 4.2-2 8-2V4c-3.8 0-6.2.6-8 2z"/><path d="M12 6v14"/></svg></span>追文记<small>个人阅读工作台</small></div>
+    <div id="todayTip" style="font-size:12px;color:var(--text-3)"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- ========== 书架 ========== -->
+  <div class="page active" id="page-shelf">
+    <div class="hero">
+      <div><div class="h-num" id="heroStreak">0</div><div class="h-lab">连续打卡(天)</div></div>
+      <div><div class="h-num" id="heroReading">0</div><div class="h-lab">在读/追更</div></div>
+      <div><div class="h-num" id="heroFinished">0</div><div class="h-lab">读完</div></div>
+    </div>
+    <div class="checkin">
+      <button class="btn btn-primary" id="checkinBtn" onclick="doCheckin()">今日打卡</button>
+      <span class="muted" id="checkinTip" style="font-size:13px"></span>
+    </div>
+    <div class="filters" id="filters">
+      <span class="chip active" data-f="all" onclick="setFilter('all')">全部</span>
+      <span class="chip" data-f="reading" onclick="setFilter('reading')">在读</span>
+      <span class="chip" data-f="serial" onclick="setFilter('serial')">追更</span>
+      <span class="chip" data-f="finished" onclick="setFilter('finished')">读完</span>
+      <span class="chip" data-f="dropped" onclick="setFilter('dropped')">弃文</span>
+    </div>
+    <div class="filters" id="categoryFilters" style="margin-top:8px">
+      <span class="chip" data-c="online" onclick="setCategory('online')">线上小说</span>
+      <span class="chip" data-c="physical" onclick="setCategory('physical')">实体书</span>
+      <span class="chip" data-c="other" onclick="setCategory('other')">其他</span>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-primary btn-sm" onclick="openAdd()">＋ 添加书籍</button>
+    </div>
+    <div id="bookList"></div>
+  </div>
+
+  <!-- ========== 日历 ========== -->
+  <div class="page" id="page-cal">
+    <div class="card" style="margin-top:18px">
+      <div class="cal-view-toggle">
+        <button class="cvt on" id="cvtMonth" onclick="setCalView('month')">月视图</button>
+        <button class="cvt" id="cvtYear" onclick="setCalView('year')">年视图</button>
+      </div>
+      <div id="monthView">
+        <div class="cal-head">
+          <button class="cal-nav" onclick="calMove(-1)">‹</button>
+          <span class="cal-ym" id="calYM"></span>
+          <button class="cal-nav" onclick="calMove(1)">›</button>
+        </div>
+        <div class="cal-month-sum" id="calMonthSum"></div>
+        <div id="calGrid"></div>
+        <div class="cal-legend" id="calLegend"></div>
+        <div class="muted" style="font-size:11.5px;margin-top:12px;line-height:1.8">每个日期格内显示当天在读的书,每本书用固定颜色区分(见下方图例);起始日带左侧白色竖条表示阅读起点。点任意一天弹出当日清单(含被折叠的 +N 本书),忘了记的日子还能补记。</div>
+      </div>
+      <div id="yearView" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- ========== 统计 ========== -->
+  <div class="page" id="page-stats">
+    <div class="card grow-card" style="margin-top:18px">
+      <div class="card-title">阅读成长 <span class="muted" style="font-size:12px;font-weight:400">坚持打卡，见证成长</span></div>
+      <div class="grow-static">
+        <div class="grow-static-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V11"/><path d="M12 11C12 7 9 4 5 4c0 4 3 7 7 7z"/><path d="M12 13c0-3 2.5-5.5 6.5-6 .5 3.5-2 6-6.5 6z"/></svg>
+        </div>
+        <div class="grow-static-body">
+          <div class="grow-static-num"><span id="growStreak">0</span> 天 · 连续打卡</div>
+          <div class="grow-static-next" id="growNext">开始你的第一行阅读记录吧</div>
+        </div>
+      </div>
+    </div>
+    <div class="metric-grid" style="margin-top:18px">
+      <div class="metric">
+        <div class="m-ico" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C4 4.7 4.9 4 6 4s2 .3 3 .5c1.1-.2 2.9-.5 4-.5 1.1 0 2 .7 2 1.5v12c0-.8-.9-1.5-2-1.5-1.1 0-2.9.3-4 .5-1.1-.2-2-.5-3-.5-1.1 0-2 .7-2 1.5z"/><path d="M9.5 4v13"/></svg></div>
+        <div class="m-num" id="stFinished">0</div><div class="m-lab">累计读完(本)</div>
+      </div>
+      <div class="metric">
+        <div class="m-ico" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2.77-1.5-3.87C8.98 7.45 9.7 5.8 11 4c.7 1.5 1.5 3 2.5 4.2C15.2 10 16 11.3 16 13a4 4 0 0 1-8 0c0-.5.1-1 .5-1.5z"/></svg></div>
+        <div class="m-num" id="stStreak">0</div><div class="m-lab">连续打卡(天)</div>
+      </div>
+      <div class="metric">
+        <div class="m-ico" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/><path d="M14 6l3 3"/></svg></div>
+        <div class="m-num" id="stNotes">0</div><div class="m-lab">笔记条数</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">年度目标 <span class="muted" style="font-size:12px" id="goalYear"></span></div>
+      <div class="row" style="justify-content:space-between">
+        <span id="goalText" style="font-size:14px;color:var(--text)">今年已读完 0 / 0 本</span>
+        <span class="muted" style="font-size:13px" id="goalPct">0%</span>
+      </div>
+      <div class="goal-bar"><div class="goal-fill" id="goalFill" style="width:0%"></div></div>
+      <div class="muted" style="font-size:12px;margin-top:10px" id="goalHint"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">状态分布</div>
+      <div class="dist" id="dist"></div>
+      <div class="dist-legend">
+        <span><i class="dot" style="background:var(--c-reading)"></i>在读 <b id="dReading">0</b></span>
+        <span><i class="dot" style="background:var(--c-serial)"></i>追更 <b id="dSerial">0</b></span>
+        <span><i class="dot" style="background:var(--c-finished)"></i>读完 <b id="dFinished">0</b></span>
+        <span><i class="dot" style="background:var(--c-dropped)"></i>弃文 <b id="dDropped">0</b></span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">近 7 天阅读时长</div>
+      <div class="trend" id="trend"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">阅读历史 <span class="muted" style="font-size:12px;font-weight:400">读完的书按完成时间</span></div>
+      <div id="histList"></div>
+    </div>
+  </div>
+
+  <!-- ========== 我的 ========== -->
+  <div class="page" id="page-me">
+    <div class="card" style="text-align:center;margin-top:18px">
+      <div style="width:62px;height:62px;border-radius:50%;margin:0 auto;background:linear-gradient(145deg,#EDE9F5,#E0DAEE);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:24px;font-weight:800;letter-spacing:1px;box-shadow:var(--clay-chip)">M</div>
+      <div style="font-size:18px;font-weight:800;margin-top:12px;color:var(--text)" id="meName">mumu</div>
+      <div class="muted" style="font-size:12px;margin-top:3px">追文记 · 跨平台阅读记录</div>
+    </div>
+    <div class="card">
+      <div class="card-title">年度目标</div>
+      <div class="set-row">
+        <span class="s-lab">今年想读几本</span>
+        <div class="stepper">
+          <button onclick="changeGoal(-1)">−</button>
+          <span class="val" id="goalVal">12</span>
+          <button onclick="changeGoal(1)">＋</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">笔记 & 摘抄 <span class="muted" style="font-size:12px;font-weight:400" id="meExcerptCount"></span></div>
+      <div id="meExcerpts"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">打卡记录</div>
+      <div class="set-row"><span class="s-lab">连续打卡</span><span class="muted" id="meStreak">0 天</span></div>
+      <div class="set-row"><span class="s-lab">本月打卡</span><span class="muted" id="meMonth">0 天</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">数据</div>
+      <div class="set-row">
+        <span class="s-lab">导出数据(备份)</span>
+        <button class="btn btn-ghost btn-sm" onclick="exportData()">导出 JSON</button>
+      </div>
+      <div class="set-row">
+        <span class="s-lab">导入数据(恢复)</span>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()">选择文件</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      </div>
+      <div class="set-row">
+        <span class="s-lab">清空全部数据</span>
+        <button class="btn btn-danger btn-sm" onclick="clearAll()">清空</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">关于</div>
+      <div class="about">追文记 · 网文实体书,跨平台阅读记录。番茄、晋江、长佩、废文还是纸质书,在读/追更/弃文/读完,都记在一处。支持类型/平台标签、五星评分与短评、「今天读过?记一笔」轻量记录(秒表可选)、阅读日历色带、笔记摘抄、年度目标与阅读成长路径。<br><br>数据保存在你当前浏览器本地(localStorage),不上传任何服务器。换电脑/浏览器请用「导出 JSON」备份后再导入。</div>
+    </div>
+  </div>
+</div>
+
+
+<nav>
+  <div class="tab active" data-p="shelf" onclick="switchTab('shelf')">
+    <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 6c-1.8-1.4-4.2-2-8-2v14c3.8 0 6.2.6 8 2 1.8-1.4 4.2-2 8-2V4c-3.8 0-6.2.6-8 2z"/><path d="M12 6v14"/></svg></span>书架
+  </div>
+  <div class="tab" data-p="cal" onclick="switchTab('cal')">
+    <span class="ico"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8.5 3v4M15.5 3v4"/></svg></span>日历
+  </div>
+  <div class="tab add" onclick="openAdd()" title="添加书籍">
+    <span class="add-ico">＋</span>
+  </div>
+  <div class="tab" data-p="stats" onclick="switchTab('stats')">
+    <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 20.5h16"/><path d="M6.5 20.5v-7M12 20.5V5.5M17.5 20.5v-10"/></svg></span>统计
+  </div>
+  <div class="tab" data-p="me" onclick="switchTab('me')">
+    <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.3" r="3.6"/><path d="M4.8 20.2c1.4-3.3 4-5 7.2-5s5.8 1.7 7.2 5"/></svg></span>我的
+  </div>
+</nav>
+
+<!-- 添加/编辑书 弹层 -->
+<div class="mask" id="addMask">
+  <div class="sheet">
+    <h3><span id="addTitle">添加书籍</span><span class="x" onclick="closeMask('addMask')">×</span></h3>
+    <div class="form-grid">
+      <div class="field">
+        <label>书名 <span class="req">*</span></label>
+        <input id="fTitle" placeholder="例如:诡秘之主 / 百年孤独">
+      </div>
+      <div class="field"><label>作者</label><input id="fAuthor" placeholder="选填"></div>
+      <div class="field"><label>类型</label>
+        <select id="fType">
+          <option value="physical">实体书</option>
+          <option value="online">线上小说</option>
+          <option value="fanfic">同人文</option>
+          <option value="other">其他</option>
+        </select>
+      </div>
+      <div class="field"><label>来源平台</label>
+        <select id="fPlatform">
+          <option value="">不填</option>
+          <option>番茄小说</option><option>晋江文学城</option><option>长佩文学</option>
+          <option>废文网</option><option>七猫小说</option>
+          <option>微信读书</option><option>AO3</option><option>Lofter</option>
+          <option>实体书</option><option>其他</option>
+        </select>
+      </div>
+      <div class="field"><label>总页数/章节数</label><input id="fTotal" type="number" placeholder="选填"></div>
+      <div class="field"><label>当前状态</label>
+        <select id="fStatus">
+          <option value="reading">在读(完结本/实体书)</option>
+          <option value="serial">追更(连载中)</option>
+          <option value="finished">读完</option>
+          <option value="dropped">弃文</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>开始阅读时间</label>
+        <input id="fStartDate" type="date">
+        <div class="muted" style="font-size:11px">填了会从这天起在日历上铺这本书的色带</div>
+      </div>
+      <div class="field">
+        <label>完结阅读时间</label>
+        <input id="fFinishDate" type="date">
+        <div class="muted" style="font-size:11px">读完那天；留空则按状态自动记录</div>
+      </div>
+      <div class="field span2"><label>封面图片链接(选填)</label><input id="fCover" placeholder="粘贴网络图片 URL,留空显示书名首字"></div>
+    </div>
+    <div id="addDupWarn" class="dup-warn" style="display:none">
+      <div class="dup-warn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9.5 16.5H2.5z"/><path d="M12 9.5v4.2M12 17h.01"/></svg></div>
+      <div class="dup-warn-body">
+        <div class="dup-warn-title">您已添加过该本书</div>
+        <div class="dup-warn-sub">请确认是否需要新添加</div>
+        <div class="dup-warn-actions">
+          <button class="btn btn-ghost btn-sm" onclick="hideDupWarn()">返回修改</button>
+          <button class="btn btn-primary btn-sm" onclick="confirmAddDuplicate()">仍然添加</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="saveBook()">保存到书架</button>
+  </div>
+</div>
+
+<!-- 编辑阅读日期 弹层 -->
+<div class="mask" id="dateMask">
+  <div class="sheet">
+    <h3><span>编辑阅读日期</span><span class="x" onclick="closeMask('dateMask')">×</span></h3>
+    <div class="grid2">
+      <div class="field"><label>开始阅读时间</label><input id="dStartDate" type="date"></div>
+      <div class="field"><label>完结阅读时间</label><input id="dFinishDate" type="date"></div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="saveDateEdit()">保存</button>
+  </div>
+</div>
+
+<!-- 书详情 弹层 -->
+<div class="mask" id="detailMask">
+  <div class="sheet" id="detailSheet"></div>
+</div>
+
+<!-- 加笔记 弹层 -->
+<div class="mask" id="noteMask">
+  <div class="sheet">
+    <h3><span>添加笔记 / 摘抄</span><span class="x" onclick="closeMask('noteMask')">×</span></h3>
+    <div class="grid2">
+      <div class="field"><label>类型</label>
+        <select id="nType"><option value="note">笔记(感想)</option><option value="quote">摘抄(原文)</option></select>
+      </div>
+      <div class="field"><label>页码/章节</label><input id="nPage" placeholder="选填,如 P128 / 第42章"></div>
+    </div>
+    <div class="field"><label>内容 <span class="req">*</span></label><textarea id="nContent" placeholder="写下你的想法或摘录的句子…"></textarea></div>
+    <div class="field"><label>标签(逗号分隔)</label><input id="nTags" placeholder="选填,如 名场面,泪目"></div>
+    <button class="btn btn-primary btn-block" onclick="saveNote()">保存笔记</button>
+  </div>
+</div>
+
+<!-- 摘抄记录 弹层（好词佳句：粘贴保存 / 图片 OCR 识别） -->
+<div class="mask" id="excerptMask">
+  <div class="sheet">
+    <h3><span>添加摘抄</span><span class="x" onclick="closeMask('excerptMask')">×</span></h3>
+    <div class="field">
+      <label>关联书籍 <span class="req">*</span></label>
+      <select id="eBook"></select>
+    </div>
+    <div class="field">
+      <label>摘抄内容 <span class="req">*</span></label>
+      <textarea id="eText" placeholder="遇到好词佳句,直接粘贴 / 输入文字保存;或点下方「图片识别」上传截图自动提取文字。"></textarea>
+    </div>
+    <div class="ocr-box">
+      <button class="btn btn-ghost btn-sm" onclick="excerptPickImage()">📷 图片识别(OCR)</button>
+      <span id="eOcrStatus" style="display:none"></span>
+      <input type="file" id="eImg" accept="image/*" style="display:none" onchange="excerptImgChange(event)">
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:6px" onclick="saveExcerpt()">保存摘抄</button>
+  </div>
+</div>
+
+<!-- ========== 书架快捷操作：今日已读（底部动作表） ========== -->
+<div class="mask" id="quickMenu">
+  <div class="sheet sheet-quick">
+    <div class="qm-grab"></div>
+    <div class="qm-title" id="qmTitle">书名</div>
+    <div class="qm-sub" id="qmSub">追更 · 标记今日已读</div>
+    <button class="qm-btn qm-primary" onclick="quickMarkToday()">今日已读</button>
+    <button class="qm-btn" onclick="quickMenuDetail()">查看详情</button>
+    <button class="qm-btn qm-cancel" onclick="closeMask('quickMenu')">取消</button>
+  </div>
+</div>
+
+<!-- 日视图弹窗：点击日历某天，查看当天阅读的全部书籍（含被折叠的 +N 本） -->
+<div class="mask" id="dayViewMask">
+  <div class="sheet">
+    <h3><span id="dvTitle">当日阅读</span><span class="x" onclick="closeMask('dayViewMask')">×</span></h3>
+    <div id="dvBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 数据层(localStorage) ============ */
+const KEY_BOOKS='zwj_books', KEY_CHECKIN='zwj_checkins', KEY_SET='zwj_settings', KEY_DAILY='zwj_daily', KEY_BOOKDAY='zwj_bookday', KEY_PLANS='zwj_plans', KEY_EXCERPTS='zwj_excerpts';
+const TYPE_LABEL={physical:'实体书',online:'线上小说',fanfic:'同人文',other:'其他'};
+const STATUS_LABEL={want:'入坑',reading:'在读',serial:'追更',finished:'读完',dropped:'弃文'};
+const STATUS_ORDER=['reading','serial','finished','dropped'];
+
+/* 存储后端容错：localStorage 不可用时(如手机 file:// 直接打开、iOS Safari 隐私限制)自动退回内存,
+   应用不崩溃,且仍可经「导出 JSON」备份数据 */
+let __mem={};let STORAGE_OK=true;
+try{const __t='__zwj_probe__';localStorage.setItem(__t,'1');localStorage.removeItem(__t)}catch(e){STORAGE_OK=false}
+function __rawGet(k){return STORAGE_OK?localStorage.getItem(k):(k in __mem?__mem[k]:null)}
+function __rawSet(k,v){if(STORAGE_OK)localStorage.setItem(k,v);else __mem[k]=v}
+function __rawDel(k){if(STORAGE_OK)localStorage.removeItem(k);else delete __mem[k]}
+function load(k,def){try{const s=__rawGet(k);return s==null?def:JSON.parse(s)??def}catch(e){return def}}
+function save(k,v){__rawSet(k,JSON.stringify(v))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function ymd(ts){const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function getBooks(){return load(KEY_BOOKS,[])}
+function setBooks(b){save(KEY_BOOKS,b)}
+function getBook(id){return getBooks().find(b=>b.id===id)}
+function getSettings(){return Object.assign({yearGoal:12},load(KEY_SET,{}))}
+function setSettings(s){save(KEY_SET,s)}
+function getDaily(){return load(KEY_DAILY,{})}
+function addDaily(sec,dateStr){const d=getDaily();const k=dateStr||today();d[k]=(d[k]||0)+sec;save(KEY_DAILY,d)}
+/* 每日·每本书阅读记录 {日期:{bookId:秒数}}，日历页数据源 */
+function getBookDay(){return load(KEY_BOOKDAY,{})}
+function logBookDay(bookId,sec,dateStr){
+  if(!bookId)return;
+  const d=getBookDay();const k=dateStr||today();
+  if(!d[k])d[k]={};
+  d[k][bookId]=(d[k][bookId]||0)+(sec||0);
+  save(KEY_BOOKDAY,d);
+}
+/* 今天是否已为某本书留下阅读记录(键存在即算,0 时长也计入,与「记一笔(0 分钟)」一致) */
+function isReadToday(id){const bd=getBookDay()[today()];return !!(bd&&(id in bd))}
+
+/* 阅读计划历史数据仍随备份导出/导入保留（getPlans/setPlans），便于旧备份兼容 */
+function getPlans(){return load(KEY_PLANS,[])}
+function setPlans(p){save(KEY_PLANS,p)}
+/* 摘抄记录 {id, bookId, text, createdAt, fromImage} —— 与对应书籍关联存储 */
+function getExcerpts(){return load(KEY_EXCERPTS,[])}
+function setExcerpts(a){save(KEY_EXCERPTS,a)}
+function addExcerpt(data){const a=getExcerpts();a.push(Object.assign({id:uid(),createdAt:Date.now()},data));setExcerpts(a);return a[a.length-1]}
+function delExcerpt(id){setExcerpts(getExcerpts().filter(e=>e.id!==id))}
+
+function addBook(data){
+  const books=getBooks();
+  books.unshift(Object.assign({
+    id:uid(),title:'',author:'',cover:'',isbn:'',totalPages:0,currentPage:0,curChapter:0,
+    status:'want',bookType:'physical',platform:'',rating:0,review:'',notes:[],
+    totalReadTime:0,addTime:Date.now(),startTime:0,finishTime:0,lastReadTime:0
+  },data));
+  setBooks(books);
+}
+function updateBook(id,patch){
+  const books=getBooks();const i=books.findIndex(b=>b.id===id);
+  if(i<0)return;books[i]=Object.assign(books[i],patch);setBooks(books);
+}
+function deleteBook(id){setBooks(getBooks().filter(b=>b.id!==id))}
+
+/* 打卡 */
+function getCheckins(){return load(KEY_CHECKIN,[])}
+function doCheckin(){
+  const c=getCheckins();const t=today();
+  if(c.includes(t)){toast('今天已经打过卡啦 ✓');return}
+  c.push(t);save(KEY_CHECKIN,c);toast('打卡成功!');renderShelf();renderMe();
+}
+function checkinStreak(){
+  const c=getCheckins().slice().sort();if(!c.length)return 0;
+  const set=new Set(c);let streak=0;let d=new Date();
+  // 今天没打卡则从昨天算
+  const t=today();if(!set.has(t))d.setDate(d.getDate()-1);
+  for(;;){const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(set.has(k)){streak++;d.setDate(d.getDate()-1)}else break}
+  return streak;
+}
+function checkinMonth(){
+  const ym=today().slice(0,7);return getCheckins().filter(x=>x.startsWith(ym)).length;
+}
+
+/* 工具 */
+function fmtDur(sec){
+  sec=sec||0;const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);
+  if(h>0)return h+'h'+(m>0?m+'m':'');if(m>0)return m+'m';return sec>0?sec+'s':'0';
+}
+function fmtDate(ts){const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function pct(cur,total){if(!total)return 0;return Math.min(100,Math.round(cur/total*100))}
+function starStr(n){return '★★★★★☆☆☆☆☆'.slice(5-n,10-n)}
+
+/* ============ 书架 ============ */
+let curFilter='all', curCategory='all', curEditId=null;
+function setFilter(f){curFilter=f;document.querySelectorAll('#filters .chip').forEach(c=>c.classList.toggle('active',c.dataset.f===f));renderBookList()}
+function setCategory(c){
+  curCategory=(curCategory===c)?'all':c;
+  document.querySelectorAll('#categoryFilters .chip').forEach(ch=>ch.classList.toggle('active',ch.dataset.c===curCategory));
+  renderBookList();
+}
+function renderShelf(){
+  document.getElementById('heroStreak').textContent=checkinStreak();
+  const books=getBooks();
+  document.getElementById('heroReading').textContent=books.filter(b=>b.status==='reading'||b.status==='serial').length;
+  document.getElementById('heroFinished').textContent=books.filter(b=>b.status==='finished').length;
+  const t=today();const done=getCheckins().includes(t);
+  document.getElementById('checkinBtn').textContent=done?'✓ 今日已打卡':'今日打卡';
+  document.getElementById('checkinTip').textContent=done?('本月已打卡 '+checkinMonth()+' 天'):'记录今天读书了~';
+  renderBookList();
+}
+function renderBookList(){
+  const box=document.getElementById('bookList');
+  let books=getBooks();
+  if(curFilter!=='all')books=books.filter(b=>b.status===curFilter);
+  if(curCategory!=='all'){
+    const map={online:['online','fanfic'],physical:['physical'],other:['other']};
+    const ok=map[curCategory]||[];
+    books=books.filter(b=>ok.includes(b.bookType));
+  }
+  if(!books.length){
+    box.innerHTML='<div class="empty"><div class="e-ico"><svg viewBox="0 0 24 24"><path d="M12 6c-1.8-1.4-4.2-2-8-2v14c3.8 0 6.2.6 8 2 1.8-1.4 4.2-2 8-2V4c-3.8 0-6.2.6-8 2z"/><path d="M12 6v14"/></svg></div><div>'+(getBooks().length?'这个筛选条件下暂时没有书':'还没有书,点上方「＋ 添加书籍」添加第一本')+'</div></div>';return;
+  }
+  box.innerHTML=books.map(b=>{
+    const p=pct(b.currentPage,b.totalPages);
+    const initial=esc((b.title||'书')[0]);
+    const statusTag=`<span class="tag stat stat-${b.status}">${STATUS_LABEL[b.status]}</span>`;
+    const typeTag=`<span class="tag">${TYPE_LABEL[b.bookType]||'实体书'}</span>`;
+    const stars=b.rating?`<div class="stars-sm">${starStr(b.rating)}</div>`:'';
+    const todayMarked=isReadToday(b.id);
+    const isSerial=b.status==='serial';
+    /* 追更中的书：未标记今日已读时,在进度条上方显示「今日已读」按钮;长按书籍项亦弹出快捷菜单 */
+    const quickBtn=(isSerial&&!todayMarked)?`<button class="book-quick-pill" onclick="event.stopPropagation();quickMenuOpen('${b.id}')">${SUN_SVG}今日已读</button>`:'';
+    const readBadge=todayMarked?`<span class="read-today-badge">${SUN_SVG}今日已读</span>`:'';
+    const quickRow=(quickBtn||readBadge)?`<div class="book-quick-row">${quickBtn}${readBadge}</div>`:'';
+    const lp=isSerial?` ontouchstart="qmLpStart('${b.id}',event)" ontouchmove="qmLpMove(event)" ontouchend="qmLpEnd(event)" oncontextmenu="event.preventDefault();quickMenuOpen('${b.id}')"`:'';
+    return `<div class="card book-card${isSerial?' serial':''}" onclick="quickMenuCardClick('${b.id}')"${lp}>
+      <button class="book-edit" title="编辑书籍" onclick="event.stopPropagation();openEdit('${b.id}')">✎</button>
+      <div class="cover-ico">${initial}</div>
+      <div class="book-title">${esc(b.title)}</div>
+      <div class="tags">${statusTag}${typeTag}</div>
+      ${stars}
+      ${quickRow}
+      <div class="prog"><div class="bar"><div class="bar-fill" style="width:${p}%"></div></div></div>
+    </div>`;
+  }).join('');
+}
+function coverFallbackHTML(title){return `<div class="cover">${esc((title||'书')[0])}</div>`}
+function coverFallback(title){const d=document.createElement('div');d.className='cover';d.textContent=(title||'书')[0];return d}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+/* ============ 书架快捷标记：今日已读 ============ */
+/* 仅追更(serial)书籍在书架提供快捷入口；与详情页「记一笔」并存,互不干扰 */
+/* 太阳图标(代表"每日/今日"),替代 ✓,仅作轻量视觉标识 */
+const SUN_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>';
+let curQuickId=null, _suppressDetail=false, _lpTimer=null, _lpMoved=false;
+/* 普通点击书籍项仍打开详情;长按已置位 _suppressDetail 时吞掉这次点击,避免误开详情 */
+function quickMenuCardClick(id){
+  if(_suppressDetail){_suppressDetail=false;return;}
+  if(document.getElementById('quickMenu').classList.contains('show'))return;
+  openDetail(id);
+}
+/* 长按卡片(追更书)约 480ms 且未移动则弹出快捷菜单;移动视为滚动,取消 */
+function qmLpStart(id,e){ _lpMoved=false; _lpTimer=setTimeout(()=>{ _lpTimer=null; if(!_lpMoved){ _suppressDetail=true; quickMenuOpen(id); setTimeout(()=>{_suppressDetail=false;},420); } },480); }
+function qmLpMove(){ _lpMoved=true; if(_lpTimer){clearTimeout(_lpTimer);_lpTimer=null;} }
+function qmLpEnd(){ if(_lpTimer){clearTimeout(_lpTimer);_lpTimer=null;} }
+/* 打开快捷菜单(底部动作表);已打开则忽略,防止长按/右键重复触发 */
+function quickMenuOpen(id){
+  if(document.getElementById('quickMenu').classList.contains('show'))return;
+  const b=getBook(id);if(!b){toast('书不见了');return;}
+  curQuickId=id;
+  document.getElementById('qmTitle').textContent=b.title||'未命名';
+  document.getElementById('qmSub').textContent=(STATUS_LABEL[b.status]||'')+' · 标记今日已读';
+  openMask('quickMenu');
+}
+/* 从快捷菜单进入详情(保留原有「记一笔」路径) */
+function quickMenuDetail(){ const id=curQuickId; closeMask('quickMenu'); if(id)openDetail(id); }
+/* 今日已读：与详情页「记一笔(0 分钟)」一致,仅记录当日阅读(0 时长),不触发全局打卡,两条路径并存 */
+function quickMarkToday(){
+  if(!curQuickId)return;
+  const id=curQuickId;
+  const b=getBook(id); if(!b)return;
+  const ts=Date.now();
+  updateBook(id,{lastReadTime:Math.max(b.lastReadTime||0,ts)});
+  logBookDay(id,0,today());
+  closeMask('quickMenu');
+  toast('今日已读');
+  renderShelf();renderStats();
+}
+
+/* ============ 添加 / 编辑书 ============ */
+function openAdd(){
+  curEditId=null;
+  document.getElementById('addTitle').textContent='添加书籍';
+  document.getElementById('fTitle').value='';document.getElementById('fAuthor').value='';
+  document.getElementById('fType').value='physical';document.getElementById('fPlatform').value='';
+  document.getElementById('fTotal').value='';document.getElementById('fCover').value='';
+  document.getElementById('fStartDate').value='';document.getElementById('fFinishDate').value='';document.getElementById('fStatus').value='reading';
+  hideDupWarn();
+  openMask('addMask');
+}
+function openEdit(id){
+  curEditId=id;
+  const b=getBook(id);if(!b){toast('书不见了');return}
+  const st=STATUS_ORDER.includes(b.status)?b.status:'reading';
+  document.getElementById('addTitle').textContent='编辑书籍';
+  document.getElementById('fTitle').value=b.title||'';
+  document.getElementById('fAuthor').value=b.author||'';
+  document.getElementById('fType').value=b.bookType||'physical';
+  document.getElementById('fPlatform').value=b.platform||'';
+  document.getElementById('fTotal').value=b.totalPages||'';
+  document.getElementById('fCover').value=b.cover||'';
+  document.getElementById('fStartDate').value=b.startTime?fmtDate(b.startTime):'';
+  document.getElementById('fFinishDate').value=b.finishTime?fmtDate(b.finishTime):'';
+  document.getElementById('fStatus').value=st;
+  hideDupWarn();
+  openMask('addMask');
+}
+function saveBook(){
+  const title=document.getElementById('fTitle').value.trim();
+  if(!title){toast('请填写书名');return}
+  if(!curEditId){ // 新增模式：检测是否已存在同名书籍
+    const norm=t=>t.trim().toLowerCase();
+    const dup=getBooks().some(b=>norm(b.title)===norm(title));
+    if(dup){ showDupWarn(); return; }
+  }
+  commitBook();
+}
+/* 弹窗内联提醒：您已添加过该本书,请确认是否需要新添加 */
+function showDupWarn(){ document.getElementById('addDupWarn').style.display='flex'; }
+function hideDupWarn(){ document.getElementById('addDupWarn').style.display='none'; }
+function confirmAddDuplicate(){ hideDupWarn(); commitBook(); }
+function commitBook(){
+  const title=document.getElementById('fTitle').value.trim();
+  const startDateStr=document.getElementById('fStartDate').value;   // yyyy-mm-dd 或空
+  const finishDateStr=document.getElementById('fFinishDate').value; // yyyy-mm-dd 或空
+  const status=document.getElementById('fStatus').value;
+  const cover=document.getElementById('fCover').value.trim();
+  const totalPages=parseInt(document.getElementById('fTotal').value)||0;
+  const bookType=document.getElementById('fType').value;
+  const platform=document.getElementById('fPlatform').value;
+  const author=document.getElementById('fAuthor').value.trim();
+  const b=curEditId?getBook(curEditId):null;
+  // 开始阅读时间：填了用填写的；在读/追更且无记录则记为现在；其余 0
+  const startTime=startDateStr?new Date(startDateStr+'T00:00:00').getTime():
+    ((status==='reading'||status==='serial')?(b&&b.startTime?b.startTime:Date.now()):0);
+  // 完结阅读时间：填了用填写的；读完状态保留已有/记为现在；其余 0（绝不从读书记录推导）
+  let finishTime;
+  if(finishDateStr) finishTime=new Date(finishDateStr+'T00:00:00').getTime();
+  else if(status==='finished') finishTime=(b&&b.finishTime)?b.finishTime:Date.now();
+  else finishTime=0;
+  if(curEditId){
+    updateBook(curEditId,{title,author,bookType,platform,totalPages,cover,status,startTime,finishTime});
+    closeMask('addMask');toast('已更新');renderShelf();renderStats();return;
+  }
+  addBook({title,author,bookType,platform,totalPages,cover,status,startTime,finishTime});
+  closeMask('addMask');toast('已入架');renderShelf();
+}
+
+/* ============ 书详情 ============ */
+let curDetailId=null, readingStart=0, timerHandle=null;
+function openDetail(id){
+  curDetailId=id;readingStart=0;if(timerHandle){clearInterval(timerHandle);timerHandle=null}
+  renderDetail();openMask('detailMask');
+}
+function renderDetail(){
+  const b=getBook(curDetailId);if(!b){closeMask('detailMask');return}
+  const p=pct(b.currentPage,b.totalPages);
+  const cover=b.cover?`<img class="d-cover" src="${esc(b.cover)}" onerror="this.replaceWith(dCoverFallback('${esc(b.title)}'))">`:`<div class="d-cover">${esc((b.title||'书')[0])}</div>`;
+  const platform=b.platform?`<span class="tag blue">${esc(b.platform)}</span>`:'';
+  const notes=(b.notes||[]).slice().sort((a,c)=>(c.createTime||0)-(a.createTime||0));
+  const reading=readingStart>0;
+  const excerpts=getExcerpts().filter(e=>e.bookId===curDetailId);
+  /* 笔记与摘抄合并为统一视图:按时间倒序,区分类型,各自可删 */
+  const merged=[...notes.map(n=>({kind:'note',...n})),
+    ...excerpts.map(e=>({kind:'excerpt',id:e.id,text:e.text,createdAt:e.createdAt,fromImage:e.fromImage}))]
+    .sort((a,c)=>(c.createdAt||0)-(a.createdAt||0));
+  const mergedHTML=merged.length?merged.map(it=>{
+    if(it.kind==='note'){
+      const cls=it.type==='quote'?'quote':'';
+      return `<div class="note-item ${cls}">
+        <div class="row" style="justify-content:space-between">
+          <span class="note-type">${it.type==='quote'?'摘抄':'笔记'}${it.page?' · '+esc(it.page):''}</span>
+          <span class="note-del" onclick="delNote('${it.id}')">删除</span>
+        </div>
+        <div class="note-content">${esc(it.content)}</div>
+        ${(it.tags&&it.tags.length)?'<div class="note-meta">'+it.tags.map(t=>'#'+esc(t)).join(' ')+'</div>':''}
+      </div>`;
+    }
+    return `<div class="excerpt-item">
+      <div class="e-quote">“</div>
+      <div class="e-main">
+        <div class="e-text">${esc(it.text)}</div>
+        <div class="e-meta"><span>${fmtDate(it.createdAt)}</span>${it.fromImage?'<span>图片识别</span>':''}<span class="e-del" onclick="delExcerptConfirm('${it.id}')">删除</span></div>
+      </div>
+    </div>`;
+  }).join(''):'<div class="muted" style="font-size:13px;padding:8px 0">还没有笔记或摘抄,点上方按钮记录第一条。</div>';
+
+  document.getElementById('detailSheet').innerHTML=`
+    <h3><span>书籍详情</span><span class="x" onclick="closeMask('detailMask')">×</span></h3>
+    <div class="d-head">
+      ${cover}
+      <div style="flex:1;min-width:0">
+        <div class="d-title">${esc(b.title)}</div>
+        <div class="d-author">${esc(b.author||'佚名')}</div>
+        <div class="tags" style="margin-top:9px">
+          <span class="tag">${TYPE_LABEL[b.bookType]||'实体书'}</span>${platform}
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:9px">${b.totalPages?('共 '+b.totalPages+' 页/章'):'未设置总量'} · 已读 ${fmtDur(b.totalReadTime)}${b.status==='finished'&&b.finishTime?(' · 读完于 '+fmtDate(b.finishTime)):''}${b.status==='serial'&&b.curChapter?(' · 读到第 '+b.curChapter+' 章'):''}</div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      ${STATUS_ORDER.map(s=>`<div class="s ${b.status===s?'on':''}" onclick="setStatus('${s}')">${STATUS_LABEL[s]}</div>`).join('')}
+    </div>
+
+    <div class="card" style="box-shadow:none;border:1px solid var(--line)">
+      <div class="card-title">阅读日期 <button class="btn btn-ghost btn-sm" onclick="openDateEdit()">编辑</button></div>
+      <div class="row" style="justify-content:space-between;font-size:14px">
+        <span class="muted">开始阅读</span><span style="font-weight:700">${b.startTime?fmtDate(b.startTime):'—'}</span>
+      </div>
+      <div class="row" style="justify-content:space-between;font-size:14px;margin-top:8px">
+        <span class="muted">完结阅读</span><span style="font-weight:700">${b.finishTime?fmtDate(b.finishTime):'—'}</span>
+      </div>
+    </div>
+
+    <div class="card" style="box-shadow:none;border:1px solid var(--line)">
+      <div class="card-title">阅读进度</div>
+      <div class="row">
+        <input type="number" id="dCurPage" value="${b.currentPage||0}" style="width:90px;border:0;border-radius:14px;padding:8px 10px;font-size:16px;font-family:inherit;background:#EFEBF5;box-shadow:var(--clay-pressed)" >
+        <span class="muted">/ ${b.totalPages||'?'} 页·章</span>
+        <button class="btn btn-ghost btn-sm" onclick="saveProgress()">更新</button>
+        <span style="flex:1"></span>
+        <span class="prog-txt" style="width:auto;color:var(--accent);font-weight:700">${p}%</span>
+      </div>
+      ${b.status==='serial'?`<div class="row" style="margin-top:12px;gap:8px;align-items:center">
+        <span class="muted" style="font-size:13px;font-weight:600">当前读到</span>
+        <input type="number" id="dChapter" value="${b.curChapter||0}" min="0" style="width:76px;border:0;border-radius:14px;padding:8px 10px;font-size:16px;font-family:inherit;background:#EFEBF5;box-shadow:var(--clay-pressed)">
+        <span class="muted">章</span>
+        <button class="btn btn-ghost btn-sm" onclick="saveChapter()">更新</button>
+        ${b.curChapter?`<span class="prog-txt" style="width:auto;color:var(--amber);font-weight:700">第 ${b.curChapter} 章</span>`:''}
+      </div>`:''}
+      <div class="bar" style="margin-top:10px"><div class="bar-fill" style="width:${p}%"></div></div>
+      <div class="quicklog">
+        <span style="font-size:13px;font-weight:600;color:var(--text)">读过?</span>
+        <input type="date" id="qlDate" class="ql-date" value="${today()}">
+        <span class="ql-chip" onclick="quickLog(0)">记一笔</span>
+        <span class="ql-chip" onclick="quickLog(15)">15分钟</span>
+        <span class="ql-chip" onclick="quickLog(30)">30分钟</span>
+        <span class="ql-chip" onclick="quickLog(60)">1小时</span>
+        <span class="ql-chip" onclick="quickLogCustom()">自定义</span>
+      </div>
+      <div class="ql-tip">先选日期(默认今天)再点按钮,可记任意一天的阅读;时长不填也行,日历照样有色块。更新进度/记笔记会自动记录当天。</div>
+      <details class="timer-fold" ${reading?'open':''}>
+        <summary>想精确计时?展开秒表(可选)</summary>
+        <div style="margin-top:10px">
+          <button class="btn ${reading?'btn-danger':'btn-ghost'} btn-block" onclick="toggleReading()">
+            ${reading?'结束本次阅读(计时中 '+'<span id="liveTimer">0s</span>)':'开始阅读计时'}
+          </button>
+        </div>
+      </details>
+    </div>
+
+    <div class="card" style="box-shadow:none;border:1px solid var(--line)">
+      <div class="card-title">评分 & 短评</div>
+      <div class="stars" id="starBox">${[1,2,3,4,5].map(i=>`<span onclick="setRating(${i})" class="${i<=b.rating?'on':''}">★</span>`).join('')}</div>
+      <div class="muted" style="font-size:12px;margin:4px 0 10px">${b.rating?ratingText(b.rating):'点击星星,给「好不好看」打个分'}</div>
+      <textarea id="dReview" placeholder="一句话短评:好看在哪 / 哪里劝退…" style="width:100%;border:0;border-radius:14px;padding:10px;min-height:60px;font-size:16px;font-family:inherit;background:#EFEBF5;box-shadow:var(--clay-pressed)">${esc(b.review||'')}</textarea>
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="saveReview()">保存短评</button>
+    </div>
+
+    <div class="card" style="box-shadow:none;border:1px solid var(--line)">
+      <div class="card-title">笔记 & 摘抄(${merged.length})
+        <span style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="openNote()">＋ 记笔记</button>
+          <button class="btn btn-ghost btn-sm" onclick="openExcerpt('${b.id}')">＋ 摘抄</button>
+        </span>
+      </div>
+      ${mergedHTML}
+    </div>
+
+    <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="openEdit('${b.id}')">编辑书籍信息</button>
+    <button class="btn btn-danger btn-block" style="margin-top:6px" onclick="removeBook()">删除这本书</button>
+  `;
+}
+function dCoverFallback(title){const d=document.createElement('div');d.className='d-cover';d.textContent=(title||'书')[0];return d}
+function ratingText(r){return ['','不忍卒读','平平无奇','还行,可一看','挺好看,推荐','神作,封神了'][r]||''}
+
+function setStatus(s){
+  const b=getBook(curDetailId);const patch={status:s};
+  if((s==='reading'||s==='serial')&&!b.startTime)patch.startTime=Date.now();
+  if(s==='finished')patch.finishTime=Date.now();
+  if(s==='dropped')patch.dropTime=Date.now();
+  patch.lastReadTime=Date.now();
+  updateBook(curDetailId,patch);
+  if(s==='finished'||s==='reading'||s==='serial')logBookDay(curDetailId,0);
+  if(s==='dropped')toast('弃了弃了,下一本');
+  renderDetail();renderShelf();renderStats();
+}
+function openDateEdit(){
+  const b=getBook(curDetailId);if(!b)return;
+  document.getElementById('dStartDate').value=b.startTime?fmtDate(b.startTime):'';
+  document.getElementById('dFinishDate').value=b.finishTime?fmtDate(b.finishTime):'';
+  openMask('dateMask');
+}
+function saveDateEdit(){
+  const b=getBook(curDetailId);if(!b)return;
+  const sStr=document.getElementById('dStartDate').value;
+  const fStr=document.getElementById('dFinishDate').value;
+  const patch={};
+  patch.startTime=sStr?new Date(sStr+'T00:00:00').getTime():(b.startTime||0);
+  if(fStr) patch.finishTime=new Date(fStr+'T00:00:00').getTime();
+  else if(b.status==='finished') patch.finishTime=(b.finishTime||Date.now());
+  else patch.finishTime=0;
+  updateBook(curDetailId,patch);
+  closeMask('dateMask');renderDetail();renderShelf();renderStats();
+}
+function saveProgress(){
+  const v=parseInt(document.getElementById('dCurPage').value)||0;
+  updateBook(curDetailId,{currentPage:v,lastReadTime:Date.now()});
+  logBookDay(curDetailId,0);
+  toast('进度已更新');renderDetail();renderShelf();
+}
+function saveChapter(){
+  const v=parseInt(document.getElementById('dChapter').value)||0;
+  updateBook(curDetailId,{curChapter:v,lastReadTime:Date.now()});
+  logBookDay(curDetailId,0);
+  toast('章节已更新');renderDetail();renderShelf();
+}
+function setRating(n){updateBook(curDetailId,{rating:n});renderDetail();renderShelf();renderStats()}
+function saveReview(){updateBook(curDetailId,{review:document.getElementById('dReview').value.trim()});toast('短评已保存')}
+
+/* 快速记一笔:不需要秒表,点一下就在日历留痕;带分钟数则同时累计时长 */
+function quickLog(min){
+  const inp=document.getElementById('qlDate');
+  const dateStr=(inp&&inp.value)?inp.value:today();
+  const sec=(min||0)*60;
+  const ts=dateStr===today()?Date.now():new Date(dateStr+'T00:00:00').getTime();
+  const b=getBook(curDetailId);
+  const nLRT=Math.max(b.lastReadTime||0,ts);
+  if(sec>0){
+    updateBook(curDetailId,{totalReadTime:(b.totalReadTime||0)+sec,lastReadTime:nLRT});
+    addDaily(sec,dateStr);
+  }else{
+    updateBook(curDetailId,{lastReadTime:nLRT});
+  }
+  logBookDay(curDetailId,sec,dateStr);
+  const tag=dateStr===today()?'':' · '+dateStr;
+  toast(sec>0?('已记录 '+fmtDur(sec)+tag):('已记一笔'+tag+' · 日历已更新'));
+  renderDetail();
+  const inp2=document.getElementById('qlDate');if(inp2)inp2.value=dateStr;
+  renderShelf();renderStats();renderCal();   // 立即刷新日历,使(完结后)重读当天也能及时显示色条
+}
+function quickLogCustom(){
+  const v=prompt('读了多少分钟?','45');
+  if(v===null)return;
+  const min=parseInt(v);
+  if(!min||min<=0){toast('请输入正整数分钟');return}
+  quickLog(min);
+}
+function toggleReading(){
+  if(readingStart>0){
+    const sec=Math.floor((Date.now()-readingStart)/1000);
+    const b=getBook(curDetailId);
+    updateBook(curDetailId,{totalReadTime:(b.totalReadTime||0)+sec,lastReadTime:Date.now()});
+    addDaily(sec);logBookDay(curDetailId,sec);
+    readingStart=0;if(timerHandle){clearInterval(timerHandle);timerHandle=null}
+    toast('本次阅读 '+fmtDur(sec));renderDetail();renderShelf();renderStats();renderCal();
+  }else{
+    readingStart=Date.now();renderDetail();
+    timerHandle=setInterval(()=>{
+      const el=document.getElementById('liveTimer');
+      if(el)el.textContent=fmtDur(Math.floor((Date.now()-readingStart)/1000));
+    },1000);
+  }
+}
+function removeBook(){
+  if(!confirm('确定删除这本书?笔记和进度会一起删除,不可恢复。'))return;
+  deleteBook(curDetailId);closeMask('detailMask');toast('已删除');renderShelf();renderStats();
+}
+
+/* ============ 笔记 ============ */
+function openNote(){
+  document.getElementById('nType').value='note';document.getElementById('nPage').value='';
+  document.getElementById('nContent').value='';document.getElementById('nTags').value='';
+  openMask('noteMask');
+}
+function saveNote(){
+  const content=document.getElementById('nContent').value.trim();
+  if(!content){toast('请填写笔记内容');return}
+  const tags=document.getElementById('nTags').value.split(/[,，]/).map(t=>t.trim()).filter(Boolean);
+  const b=getBook(curDetailId);const notes=b.notes||[];
+  notes.push({id:uid(),type:document.getElementById('nType').value,page:document.getElementById('nPage').value.trim(),content,tags,createTime:Date.now()});
+  updateBook(curDetailId,{notes,lastReadTime:Date.now()});
+  logBookDay(curDetailId,0);
+  closeMask('noteMask');toast('笔记已保存');renderDetail();renderShelf();renderStats();renderCal();
+}
+function delNote(nid){
+  const b=getBook(curDetailId);
+  updateBook(curDetailId,{notes:(b.notes||[]).filter(n=>n.id!==nid)});
+  renderDetail();renderShelf();renderStats();
+}
+/* 跨书删除笔记(用于「我的」合并视图):按 id 在全部书中定位后移除 */
+function delNoteById(nid){
+  if(!confirm('删除这条笔记?'))return;
+  const books=getBooks();
+  for(const b of books){
+    if((b.notes||[]).some(n=>n.id===nid)){
+      updateBook(b.id,{notes:(b.notes||[]).filter(n=>n.id!==nid)});
+      break;
+    }
+  }
+  renderMe();
+}
+
+/* ============ 摘抄 ============ */
+function openExcerpt(bookId){
+  const books=getBooks();if(!books.length){toast('请先去书架加一本书');return}
+  document.getElementById('eBook').innerHTML=books.map(b=>`<option value="${b.id}">${esc(b.title)}</option>`).join('');
+  if(bookId)document.getElementById('eBook').value=bookId;
+  document.getElementById('eText').value='';
+  const st=document.getElementById('eOcrStatus');st.style.display='none';st.textContent='';
+  document.getElementById('eImg').value='';
+  openMask('excerptMask');
+}
+function saveExcerpt(){
+  const bookId=document.getElementById('eBook').value;
+  const text=document.getElementById('eText').value.trim();
+  if(!bookId){toast('请选择关联书籍');return}
+  if(!text){toast('请填写摘抄内容');return}
+  addExcerpt({bookId,text,fromImage:false});
+  closeMask('excerptMask');toast('摘抄已保存');
+  if(curDetailId===bookId)renderDetail();
+  renderMe();
+}
+function delExcerptConfirm(id){
+  if(!confirm('删除这条摘抄?'))return;
+  delExcerpt(id);
+  if(curDetailId)renderDetail();
+  renderMe();
+}
+/* 图片识别(OCR):运行时按需加载 Tesseract.js;失败时降级为手动粘贴 */
+function excerptPickImage(){document.getElementById('eImg').click()}
+function excerptImgChange(e){
+  const file=e.target.files[0];if(!file)return;
+  const st=document.getElementById('eOcrStatus');
+  st.style.display='';st.innerHTML='<span class="ocr-spin"></span> 图片识别中…(首次需下载中文模型,稍候)';
+  const done=txt=>{document.getElementById('eText').value=(document.getElementById('eText').value.trim()+' '+txt).trim();st.textContent='识别完成,可编辑后保存';};
+  const fail=()=>{st.textContent='图片识别暂不可用(可能离线),请手动粘贴文字';};
+  if(window.Tesseract){doOCR(window.Tesseract,file,done,fail,st);return}
+  const s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+  s.onload=()=>doOCR(window.Tesseract,file,done,fail,st);
+  s.onerror=fail;
+  document.head.appendChild(s);
+}
+async function doOCR(T,file,done,fail,st){
+  try{
+    const worker=await T.createWorker('chi_sim',1,{logger:m=>{if(st&&m.status==='recognizing text')st.innerHTML='<span class="ocr-spin"></span> 识别中… '+Math.round(m.progress*100)+'%'}});
+    const {data:{text}}=await worker.recognize(file);
+    await worker.terminate();
+    done(text||'');
+  }catch(err){fail()}
+}
+
+/* ============ 统计 ============ */
+/* 状态分布采用单色灰阶,避免引入多个强调色,保持页面克制 */
+const DIST_COLOR=['var(--c-reading)','var(--c-serial)','var(--c-finished)','var(--c-dropped)']; // 在读/追更/读完/弃文
+function renderStats(){
+  const books=getBooks();
+  const finished=books.filter(b=>b.status==='finished');
+  const reading=books.filter(b=>b.status==='reading');
+  const serial=books.filter(b=>b.status==='serial');
+  const dropped=books.filter(b=>b.status==='dropped');
+  const totalSec=books.reduce((s,b)=>s+(b.totalReadTime||0),0);
+  const noteTotal=books.reduce((s,b)=>s+((b.notes||[]).length),0);
+  document.getElementById('stFinished').textContent=finished.length;
+  document.getElementById('stStreak').textContent=checkinStreak();
+  document.getElementById('stNotes').textContent=noteTotal;
+
+  // 年度目标
+  const y=new Date().getFullYear();
+  const set=getSettings();
+  const finThisYear=finished.filter(b=>b.finishTime&&new Date(b.finishTime).getFullYear()===y).length;
+  const goal=set.yearGoal||0;
+  const gp=goal?Math.min(100,Math.round(finThisYear/goal*100)):0;
+  document.getElementById('goalYear').textContent=y+' 年';
+  document.getElementById('goalText').textContent=`今年已读完 ${finThisYear} / ${goal} 本`;
+  document.getElementById('goalPct').textContent=gp+'%';
+  document.getElementById('goalFill').style.width=gp+'%';
+  document.getElementById('goalHint').textContent=goal?(finThisYear>=goal?'已达成年度目标,再接再厉!':`还差 ${goal-finThisYear} 本达成目标`):'去「我的」页设置年度目标';
+
+  // 状态分布（灰阶）
+  const total=books.length||1;
+  document.getElementById('dist').innerHTML=`
+    <span style="width:${reading.length/total*100}%;background:${DIST_COLOR[0]}"></span>
+    <span style="width:${serial.length/total*100}%;background:${DIST_COLOR[1]}"></span>
+    <span style="width:${finished.length/total*100}%;background:${DIST_COLOR[2]}"></span>
+    <span style="width:${dropped.length/total*100}%;background:${DIST_COLOR[3]}"></span>`;
+  document.getElementById('dReading').textContent=reading.length;
+  document.getElementById('dSerial').textContent=serial.length;
+  document.getElementById('dFinished').textContent=finished.length;
+  document.getElementById('dDropped').textContent=dropped.length;
+
+  // 近7天趋势
+  const daily=getDaily();let maxMin=1;const arr=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(Date.now()-i*86400000);
+    const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const min=Math.round((daily[k]||0)/60);if(min>maxMin)maxMin=min;
+    arr.push({lab:(d.getMonth()+1)+'/'+d.getDate(),min});
+  }
+  document.getElementById('trend').innerHTML=arr.map(t=>`
+    <div class="t">
+      <div class="t-val">${t.min>0?t.min+'m':''}</div>
+      <div class="t-bar" style="height:${t.min===0?2:Math.round(t.min/maxMin*100)}%"></div>
+      <div class="t-lab">${t.lab}</div>
+    </div>`).join('');
+
+  /* ============ 阅读成长：由连续打卡天数驱动的静态里程碑展示 ============ */
+  const GROWTH_MILESTONES=[
+    {min:1,  name:'初露锋芒'},
+    {min:7,  name:'持之以恒'},
+    {min:30, name:'阅读有成'},
+    {min:100,name:'书海行家'},
+    {min:200,name:'阅读宗师'}
+  ];
+  function renderGrowthStatic(){
+    const streak=checkinStreak();
+    const el=document.getElementById('growStreak'); if(el)el.textContent=streak;
+    const nx=document.getElementById('growNext'); if(!nx)return;
+    let next=null;
+    for(const m of GROWTH_MILESTONES){ if(streak<m.min){next=m;break;} }
+    if(next){ nx.textContent='再连续打卡 '+(next.min-streak)+' 天，达成「'+next.name+'」'; }
+    else { nx.textContent='已达成全部阅读里程碑，了不起的阅读者！'; }
+  }
+
+  renderGrowthStatic();
+
+  // 阅读历史：读完的书按完成时间倒序（读完自动记录时间戳,见 setStatus/finishTime）
+  const hist=books.filter(b=>b.status==='finished'&&b.finishTime).sort((a,b)=>b.finishTime-a.finishTime);
+  document.getElementById('histList').innerHTML=hist.length?hist.map(b=>`
+    <div class="hist-item" onclick="openDetail('${b.id}')">
+      <div class="h-ico">${esc((b.title||'书')[0])}</div>
+      <div class="h-main">
+        <div class="h-title">${esc(b.title)}</div>
+        <div class="h-sub">${esc(b.author||'佚名')}${b.rating?(' · '+starStr(b.rating)):''}</div>
+      </div>
+      <div class="h-date">读完于 ${fmtDate(b.finishTime)}</div>
+    </div>`).join(''):'<div class="muted" style="font-size:13px;padding:8px 0">还没有读完的书,把状态改为「读完」会自动记录完成时间,并显示在这里。</div>';
+}
+
+/* 阅读成长：静态里程碑展示，由 renderGrowthStatic() 渲染 */
+
+/* ============ 日历 ============ */
+/* 日历/标签/分布统一使用的「状态语义色」：Claymorphism 糖果色板 */
+const STATUS_COLOR={
+  want:'#0EA5E9',      // 入坑：天蓝（新/信息）
+  reading:'#7C3AED',   // 在读：主紫（活跃）
+  serial:'#F59E0B',    // 追更：琥珀（持续）
+  finished:'#10B981',  // 读完：翡翠绿（成功）
+  dropped:'#DB2777'    // 弃文：热粉
+};
+/* 每本书的固定配色：可扩展、无重复的持久化颜色分配。
+   旧逻辑用 hashStr(id)%固定调色板，书籍一多必撞色；现改为：
+   · 每本书首次出现时分配一个「全局唯一」颜色并写入 localStorage(zwj_colors)，之后恒定不变；
+   · 初始优选一组高对比、视觉可区分的精选色(中明度,白字可读、浅/深背景均清晰)；
+   · 超出精选板容量后，自动用黄金角 HSL 单调生成新色(色相/饱和/明度三元组恒不同)，保证任意两本书不重色；
+   · 所有颜色控制在中明度带(L≈48-62%)，在浅色与深色背景下都有良好可读性。 */
+const BOOK_COLOR_KEY='zwj_colors';
+function getColorMap(){try{return JSON.parse(localStorage.getItem(BOOK_COLOR_KEY))||{}}catch(e){return {}}}
+function setColorMap(m){try{localStorage.setItem(BOOK_COLOR_KEY,JSON.stringify(m))}catch(e){}}
+
+/* 精选基础色板：黄金角色相均布 + 明度/饱和多级扰动，最大区分度；中明度带，白字可读且浅/深背景清晰 */
+const BOOK_BASE_COLORS=['#d02525','#27ec61','#a552e0','#ebd21e','#63cee3','#e11483','#61dc38','#4b43ef',
+  '#da682f','#56f0b7','#c225d0','#c3ec27','#5299e0','#eb1e48','#63e36e','#6114e1','#dca538','#43efe8',
+  '#da2faf','#9cf056','#2541d0','#ec4027','#52e08e','#b01eeb'];
+
+/* HSL→HEX */
+function hslToHex(h,s,l){s/=100;l/=100;const k=n=>(n+h/30)%12;const a=s*Math.min(l,1-l);
+  const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+  const to=x=>Math.round(255*x).toString(16).padStart(2,'0');return '#'+to(f(0))+to(f(8))+to(f(4))}
+/* 从「已用颜色集合」挑下一个唯一色：精选板优先；超出后用黄金角 HSL 单调生成。
+   _genSeq 全局单调，保证每次生成的(色相/饱和/明度)三元组都不同 → 必然唯一、绝不重复；
+   黄金角色相使相邻书颜色差异最大化。明度控制在 48-64% 中带，浅/深背景均清晰可读。 */
+let _genSeq=0;
+function nextBookColor(used){
+  for(const c of BOOK_BASE_COLORS) if(!used.has(c)) return c;
+  while(true){
+    _genSeq++;
+    const hue=(_genSeq*137.508)%360;            // 黄金角：相邻色相最大分离
+    const sat=58+(_genSeq%4)*9;                  // 58/67/76/85 饱和扰动
+    const light=44+((_genSeq%5)*4);              // 44/48/52/56/60 中明度带(白字/深浅背景可读)
+    const c=hslToHex(hue,sat,light);
+    if(!used.has(c)) return c;                    // 三元组单调→必唯一；极偶发取整碰撞则继续循环
+  }
+}
+/* 为全部书籍补齐唯一颜色：已分配恒定不变；新书取下一个空闲色 */
+function ensureBookColors(){
+  const map=getColorMap();const used=new Set(Object.values(map));const books=getBooks();
+  let changed=false;const ids=new Set(books.map(b=>b.id));
+  Object.keys(map).forEach(id=>{if(!ids.has(id)){delete map[id];changed=true}});  // 回收已删书的颜色
+  // 稳定顺序(按书名)分配,避免每次渲染顺序抖动导致换色
+  books.slice().sort((a,b)=>(a.title||'').localeCompare(b.title||'')||a.id.localeCompare(b.id))
+    .forEach(b=>{ if(!map[b.id]){map[b.id]=nextBookColor(used);used.add(map[b.id]);changed=true;} });
+  if(changed)setColorMap(map);return map;
+}
+let _colorMapCache=null;
+function bookColor(id){
+  if(_colorMapCache&&_colorMapCache[id])return _colorMapCache[id];
+  _colorMapCache=ensureBookColors();return _colorMapCache[id]||BOOK_BASE_COLORS[0];
+}
+let calY=new Date().getFullYear(), calM=new Date().getMonth(), selDay=null, calView='month';
+function calMove(d){
+  calM+=d;
+  if(calM<0){calM=11;calY--}if(calM>11){calM=0;calY++}
+  selDay=null;renderCal();
+}
+function dstr(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+/* 每本书的「阅读区间」:有完结/弃文日期的按 [开始,完结] 区间铺带;
+   进行中(在读/追更)且未填结束日的,只标注实际有阅读记录的天(来自 bookday),
+   避免把未结束的书错误地铺满从开始到今天的每一天 */
+function bookSpans(){
+  const bd=getBookDay();
+  /* 仅当「有开始时间」或「有完结/弃文时间」才纳入阅读区间。
+     关键修复：只填了完结阅读时间(未填开始)的书,startTime=0,此前会被整体过滤掉,
+     导致该记录既不在日历也不在当日阅读记忆里——属丢失。改用完结日作为归属日,
+     使其正确落在对应的完结日下。 */
+  return getBooks().filter(b=>b.startTime>0||b.finishTime>0).map(b=>{
+    const start=ymd(b.startTime>0?b.startTime:b.finishTime);
+    const endTs=b.finishTime||b.dropTime||0;
+    if(endTs){
+      let end=ymd(endTs);if(end<start)end=start;
+      // 关键修复②：完结日之后若再次阅读并记录(bookday 中存在晚于完结日的记录),这些天也应显示色条;
+      // 单独收集到 extra,不把「完结日→重读日」之间的空档填满,只精确点亮重读当天
+      const extra=new Set(Object.keys(bd).filter(k=>bd[k]&&(b.id in bd[k])&&k>end).sort());
+      return {id:b.id,start,end,days:null,extra};
+    }
+    // 进行中无结束日:实际阅读记录的天 + 起始阅读日(始终显示),来自 bookday
+    const readDays=Object.keys(bd).filter(k=>bd[k]&&(b.id in bd[k])).sort();
+    const daySet=new Set(readDays);daySet.add(start);   // 起始阅读日始终在日历显示
+    const last=readDays.length?readDays[readDays.length-1]:start;
+    return {id:b.id,start,days:daySet,end:last>start?last:start};
+  });
+}
+/* 两个日期(YYYY-MM-DD)相差的整天数,用于阅读区间「累计天数」标注(含首尾) */
+function dayDiff(a,b){const da=new Date(a+'T00:00:00'),db=new Date(b+'T00:00:00');return Math.round((db-da)/86400000)}
+function renderCal(){
+  const t=today();
+  const bookMap={};getBooks().forEach(b=>bookMap[b.id]=b);
+  document.getElementById('calYM').textContent=calY+' 年 '+(calM+1)+' 月';
+
+  const daysIn=new Date(calY,calM+1,0).getDate();
+  const lead=(new Date(calY,calM,1).getDay());   // 0=周日,Apple 风格周日为每周首列
+  const monthBooks=new Map();   // 本月被阅读区间覆盖到的书
+  let coveredDays=0;            // 本月被阅读区间覆盖的天数
+  const cells=[];
+  for(let i=0;i<lead;i++)cells.push(null);        // 上月补位(淡显)
+  const spans=bookSpans();   // 每本书 [开始,完结] 区间(用于整段高亮)
+  for(let d=1;d<=daysIn;d++){
+    const key=dstr(calY,calM,d);
+    // 当天是否属于某本书的阅读区间:有结束日的按区间判断;进行中的只认实际阅读记录天
+    const cover=[];
+    spans.forEach(sp=>{
+      const inSpan=sp.days?sp.days.has(key):(key>=sp.start && key<=sp.end);
+      const hit=inSpan || (sp.extra&&sp.extra.has(key));   // 完结后重读日也点亮
+      if(hit){
+        const days=sp.days?sp.days.size:(dayDiff(sp.start,sp.end)+1);
+        cover.push({id:sp.id, isStart:key===sp.start, days});
+        if(!monthBooks.has(sp.id))monthBooks.set(sp.id,days);
+      }
+    });
+    if(cover.length){
+      // 按起始阅读日期升序排列(先开始读的靠左),确保同一天多本书 pill 顺序在所有日期上全局一致
+      cover.sort((a,b)=>{
+        const sa=bookMap[a.id]?bookMap[a.id].startTime:0;
+        const sb=bookMap[b.id]?bookMap[b.id].startTime:0;
+        return sa-sb || a.id.localeCompare(b.id);
+      });
+      coveredDays++;
+    }
+    cells.push({key,d,cover});
+  }
+  while(cells.length%7!==0 || cells.length<42)cells.push(null);  // 补齐 6 周网格
+
+  const wd=['日','一','二','三','四','五','六'];
+  let html=wd.map(w=>`<div class="cal-wd">${w}</div>`).join('');
+  cells.forEach(c=>{
+    if(c===null){html+=`<div class="cal-cell out"></div>`;return;}
+    const isToday=c.key===t, isSel=c.key===selDay;
+    let pills='', shown=0;
+    c.cover.forEach(o=>{
+      if(shown>=3)return;
+      const b=bookMap[o.id], col=bookColor(o.id), full=esc(b.title);
+      // 区间内每一天都显示书名 + 该书色条,直观呈现阅读跨度;所有色条统一渲染规则,保持视觉对齐一致
+      const disp=esc(b.title.length>4?b.title.slice(0,4):b.title);
+      const cls='cal-bk';
+      pills+=`<span class="${cls}" style="background:${col}" title="${full} · 点击查看详情" onclick="event.stopPropagation();openDetail('${o.id}')">${disp}</span>`;
+      shown++;
+    });
+    if(c.cover.length>3)pills+=`<span class="cal-bk more">+${c.cover.length-3}</span>`;
+    // ⑤ 阅读强度:当天书籍数决定背景深浅
+    const intensity=c.cover.length>=3?'3plus':c.cover.length===2?'2':c.cover.length===1?'1':'';
+    html+=`<div class="cal-cell ${isToday?'today':''} ${isSel?'sel':''} ${intensity?'intensity-'+intensity:''}" onclick="selectDay('${c.key}')" style="animation-delay:${Math.floor((c.d+lead)/7)*40+(c.d+lead)%7*30}ms">
+      <span class="cal-dnum">${c.d}</span>
+      <div class="cal-books">${pills}</div>
+    </div>`;
+  });
+  document.getElementById('calGrid').innerHTML=`<div class="cal-board">${html}</div>`;
+
+  // 月度小结(聚焦阅读区间,移除打卡/计划/时长统计)
+  document.getElementById('calMonthSum').innerHTML=
+    monthBooks.size>0
+      ?`<span>涉及 <b>${monthBooks.size}</b> 本</span><span>阅读区间覆盖 <b>${coveredDays}</b> 天</span>`
+      :`<span style="color:var(--text-3)">🌱 还没有阅读记录 · 添加书籍并「记一笔」开始追踪</span>`;
+
+  // 图例:每本书一种固定颜色(本月出现过的书),按起始日期排序与 pill 顺序一致
+  const lgIds=[...monthBooks.keys()].sort((a,b)=>{const sa=bookMap[a]?bookMap[a].startTime:0;const sb=bookMap[b]?bookMap[b].startTime:0;return sa-sb||a.localeCompare(b)});
+  const lg=lgIds.map(id=>{const b=bookMap[id];return `<div class="lg"><i class="sw" style="background:${bookColor(id)}"></i><span>${esc(b.title)}</span></div>`}).join('');
+  document.getElementById('calLegend').innerHTML=lg;
+
+  // 注：日视图改为点击日期后弹窗(见 selectDay→renderDayDetail)，不再在渲染日历时内联展开
+}
+function selectDay(key){selDay=(selDay===key)?null:key;renderDayDetail();renderCal()}
+function renderDayDetail(){
+  if(!selDay){closeMask('dayViewMask');return}
+  const bookMap={};getBooks().forEach(b=>bookMap[b.id]=b);
+  const t=today();
+  // ① 落在阅读区间/跨度内的书(与日历网格一致,含完结后重读日)
+  let spanBooks=selDay<=t?bookSpans().filter(s=>{
+    const inSpan=s.days?s.days.has(selDay):(selDay>=s.start&&selDay<=s.end);
+    return inSpan || (s.extra&&s.extra.has(selDay));
+  }):[];
+  // ② 补全：当天在 bookday 有记录、但未被跨度覆盖的书(如只记了一笔、未填起止日期),保证日视图不漏书
+  const bd=getBookDay();const bdDay=bd[selDay]||{};
+  const have=new Set(spanBooks.map(s=>s.id));
+  Object.keys(bdDay).forEach(id=>{ if(!have.has(id)&&bookMap[id]) spanBooks.push({id,start:selDay,days:new Set([selDay]),end:selDay}); });
+  // 与日历网格 pill 保持一致的全局排序(起始日期升序)
+  spanBooks.sort((a,b)=>{const sa=bookMap[a.id]?bookMap[a.id].startTime:0;const sb=bookMap[b.id]?bookMap[b.id].startTime:0;return sa-sb||a.id.localeCompare(b.id)});
+  const chk=getCheckins().includes(selDay);
+  const [y,m,d]=selDay.split('-');
+  document.getElementById('dvTitle').innerHTML=`${+m} 月 ${+d} 日 <span class="muted" style="font-size:12px;font-weight:400">${chk?'· 已打卡 ✓':''}${spanBooks.length?(' · 共 '+spanBooks.length+' 本'):''}</span>`;
+  const rows=spanBooks.map(s=>{
+    const b=bookMap[s.id], col=bookColor(s.id);
+    const days=s.days?s.days.size:(dayDiff(s.start,s.end)+1);
+    // 已完结的书归属到完结日,标签改为「读完于」,避免「在读期间」误导
+    const dlabel=s.days?('实际阅读 '+days+' 天')
+      :(b.status==='finished'&&b.finishTime?('读完于 '+fmtDate(b.finishTime))
+      :('在读期间 · 累计 '+days+' 天'));
+    return `<div class="day-book" onclick="openDetail('${s.id}')">
+      <i class="sw" style="background:${col}"></i>
+      <span class="db-t">${esc(b.title)}</span>
+      <span class="db-d">${dlabel}</span>
+    </div>`;
+  });
+  // 补记:忘了记的日子可以在弹窗内直接补
+  const allBooks=getBooks();
+  const backlog=(selDay<=t&&allBooks.length)?`
+    <div class="row" style="margin-top:12px;gap:8px">
+      <select id="dayLogBook" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:16px;background:var(--surface);font-family:inherit">
+        ${allBooks.map(b=>`<option value="${b.id}">${esc(b.title)}</option>`).join('')}
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="dayBacklog()">补记这天读过</button>
+    </div>`:'';
+  document.getElementById('dvBody').innerHTML=
+    (rows.length?rows.join(''):'<div style="padding:20px 8px;text-align:center"><div style="font-size:28px;margin-bottom:6px">📖</div><div class="muted" style="font-size:13px">这一天还没有阅读记录</div><div class="muted" style="font-size:11.5px;margin-top:4px">'+(chk?'已打卡 ✓ · 记一笔开始追踪吧':'选一本书，记下今天的阅读')+'</div></div>')
+    +backlog;
+  openMask('dayViewMask');   // 以弹窗形式展示当日全部书籍(含被日历折叠的 +N 本)
+}
+function dayBacklog(){
+  const sel=document.getElementById('dayLogBook');
+  if(!sel||!sel.value)return;
+  logBookDay(sel.value,0,selDay);
+  toast('已补记 ✓');renderDayDetail();renderCal();   // 刷新弹窗,把刚补记的书纳入当日清单
+}
+
+/* 月/年视图切换：年视图以「打卡日」形式总览全年阅读记录 */
+function setCalView(v){
+  calView=v;
+  document.getElementById('cvtMonth').classList.toggle('on',v==='month');
+  document.getElementById('cvtYear').classList.toggle('on',v==='year');
+  document.getElementById('monthView').style.display=v==='month'?'':'none';
+  document.getElementById('yearView').style.display=v==='year'?'':'none';
+  closeMask('dayViewMask');   // 切到年视图时收起日视图弹窗(原内联卡片已移除)
+  if(v==='year')renderYearView();else renderCal();
+}
+function renderYearView(){
+  const y=calY;
+  const checkins=new Set(getCheckins());
+  const bd=getBookDay();
+  const t=today();
+  let months='';
+  for(let mi=0;mi<12;mi++){
+    const daysIn=new Date(y,mi+1,0).getDate();
+    const lead=(new Date(y,mi,1).getDay()+6)%7;
+    let cells='';
+    for(let i=0;i<lead;i++)cells+='<div class="mini-cell out"></div>';
+    for(let d=1;d<=daysIn;d++){
+      const key=dstr(y,mi,d);
+      const chk=checkins.has(key);
+      const read=bd[key]&&Object.keys(bd[key]).length>0;
+      const cls='mini-cell'+(chk?' chk':'')+(!chk&&read?' read':'')+(key===t?' today':'');
+      cells+=`<div class="${cls}">${d}</div>`;
+    }
+    months+=`<div class="mini-month"><div class="mini-h" onclick="gotoMonth(${mi})">${mi+1} 月</div>
+      <div class="mini-w"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+      <div class="mini-g">${cells}</div></div>`;
+  }
+  const yChk=getCheckins().filter(x=>x.startsWith(y+'-')).length;
+  const yRead=Object.keys(bd).filter(k=>k.startsWith(y+'-')).length;
+  document.getElementById('yearView').innerHTML=
+    `<div class="cal-head"><button class="cal-nav" onclick="calY--;renderYearView()">‹</button>
+       <span class="cal-ym">${y} 年 · 全年阅读总览</span>
+       <button class="cal-nav" onclick="calY++;renderYearView()">›</button></div>
+     <div class="cal-month-sum"><span>全年打卡 <b>${yChk}</b> 天</span><span>有阅读记录 <b>${yRead}</b> 天</span></div>
+     <div class="cal-legend">
+       <div class="lg"><i class="sw" style="background:var(--accent)"></i><span>打卡日</span></div>
+       <div class="lg"><i class="sw" style="background:transparent;box-shadow:inset 0 0 0 2px var(--accent-line)"></i><span>有阅读记录</span></div>
+     </div>
+     <div class="year-grid">${months}</div>`;
+}
+function gotoMonth(m){calM=m;calView='month';setCalView('month')}
+
+/* ============ 我的 ============ */
+function renderMe(){
+  const set=getSettings();
+  document.getElementById('goalVal').textContent=set.yearGoal||0;
+  document.getElementById('meStreak').textContent=checkinStreak()+' 天';
+  document.getElementById('meMonth').textContent=checkinMonth()+' 天';
+  const ex=getExcerpts();
+  const allNotes=[];
+  getBooks().forEach(b=>(b.notes||[]).forEach(n=>allNotes.push({bookId:b.id,id:n.id,type:n.type,page:n.page,content:n.content,tags:n.tags,createdAt:n.createTime||0})));
+  const allExc=ex.map(e=>({bookId:e.bookId,id:e.id,kind:'excerpt',text:e.text,createdAt:e.createdAt,fromImage:e.fromImage}));
+  const mergedAll=[...allNotes.map(n=>({kind:'note',...n})),...allExc].sort((a,c)=>(c.createdAt||0)-(a.createdAt||0));
+  document.getElementById('meExcerptCount').textContent=mergedAll.length?('共 '+mergedAll.length+' 条'):'';
+  const bookMap={};getBooks().forEach(b=>bookMap[b.id]=b);
+  document.getElementById('meExcerpts').innerHTML=mergedAll.length?mergedAll.map(it=>{
+    const b=bookMap[it.bookId];
+    if(it.kind==='note'){
+      const cls=it.type==='quote'?'quote':'';
+      return `<div class="note-item ${cls}" onclick="openDetail('${it.bookId}')" style="cursor:pointer">
+        <div class="row" style="justify-content:space-between">
+          <span class="note-type">${it.type==='quote'?'摘抄':'笔记'}${it.page?' · '+esc(it.page):''} · ${esc(b?b.title:'已删除的书')}</span>
+          <span class="note-del" onclick="event.stopPropagation();delNoteById('${it.id}')">删除</span>
+        </div>
+        <div class="note-content">${esc(it.content)}</div>
+      </div>`;
+    }
+    return `<div class="excerpt-item" onclick="openDetail('${it.bookId}')" style="cursor:pointer">
+      <div class="e-quote">“</div>
+      <div class="e-main">
+        <div class="e-text">${esc(it.text)}</div>
+        <div class="e-meta"><span>${esc(b?b.title:'已删除的书')}</span><span>${fmtDate(it.createdAt)}</span>${it.fromImage?'<span>图片识别</span>':''}<span class="e-del" onclick="event.stopPropagation();delExcerptConfirm('${it.id}')">删除</span></div>
+      </div>
+    </div>`;
+  }).join(''):'<div class="muted" style="font-size:13px;padding:6px 0">还没有笔记或摘抄。在书籍详情里点「＋ 记笔记 / ＋ 摘抄」即可收藏。</div>';
+}
+function changeGoal(delta){
+  const set=getSettings();set.yearGoal=Math.max(0,(set.yearGoal||0)+delta);setSettings(set);
+  renderMe();renderStats();
+}
+function exportData(){
+  const data={books:getBooks(),checkins:getCheckins(),settings:getSettings(),daily:getDaily(),bookday:getBookDay(),plans:getPlans(),excerpts:getExcerpts(),exportAt:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='追文记备份_'+today()+'.json';a.click();toast('已导出备份');
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(d.books)setBooks(d.books);if(d.checkins)save(KEY_CHECKIN,d.checkins);
+      if(d.settings)setSettings(d.settings);if(d.daily)save(KEY_DAILY,d.daily);
+      if(d.bookday)save(KEY_BOOKDAY,d.bookday);if(d.plans)setPlans(d.plans);if(d.excerpts)setExcerpts(d.excerpts);
+      toast('导入成功');renderAll();
+    }catch(err){toast('文件格式不对')}
+  };
+  r.readAsText(file);e.target.value='';
+}
+function clearAll(){
+  if(!confirm('确定清空全部数据?书籍、笔记、打卡记录都会删除,不可恢复!建议先导出备份。'))return;
+  [KEY_BOOKS,KEY_CHECKIN,KEY_SET,KEY_DAILY,KEY_BOOKDAY,KEY_PLANS,KEY_EXCERPTS].forEach(k=>__rawDel(k));
+  __rawDel('zwj_seeded');__rawDel('zwj_caldemo');
+  toast('已清空,正在重载示例数据');location.reload();
+}
+
+/* ============ 通用 ============ */
+function switchTab(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('nav .tab').forEach(t=>t.classList.toggle('active',t.dataset.p===p));
+  if(p==='stats')renderStats();if(p==='me')renderMe();if(p==='cal'){calView==='year'?renderYearView():renderCal()}
+}
+function openMask(id){document.getElementById(id).classList.add('show');
+  const html=document.documentElement;html.style.overflow='hidden';html.style.position='fixed';html.style.width='100%';html.style.height='100%';
+  document.body.style.overflow='hidden';document.body.style.position='fixed';document.body.style.width='100%'}
+function closeMask(id){
+  document.getElementById(id).classList.remove('show');
+  const html=document.documentElement;html.style.overflow='';html.style.position='';html.style.width='';html.style.height='';
+  document.body.style.overflow='';document.body.style.position='';document.body.style.width='';
+  if(id==='detailMask'&&document.getElementById('page-cal').classList.contains('active'))renderCal();
+}
+let toastTimer=null;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1600)}
+document.querySelectorAll('.mask').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeMask(m.id)}));
+
+function renderAll(){renderShelf();renderStats();renderMe();renderCal()}
+
+/* ============ 首次示例数据 ============ */
+function seedIfEmpty(){
+  if(getBooks().length||__rawGet('zwj_seeded'))return;
+  __rawSet('zwj_seeded','1');
+  addBook({title:'诡秘之主',author:'爱潜水的乌贼',bookType:'online',platform:'起点',totalPages:1394,currentPage:900,curChapter:900,status:'serial',rating:5,review:'克苏鲁+蒸汽朋克,愚者不朽!',totalReadTime:12600,startTime:Date.now()-8*86400000});
+  addBook({title:'百年孤独',author:'加西亚·马尔克斯',bookType:'physical',platform:'实体书',totalPages:360,currentPage:360,status:'finished',rating:5,review:'魔幻现实主义天花板。',totalReadTime:28800,startTime:Date.now()-12*86400000,finishTime:Date.now()-5*86400000});
+  const books=getBooks();
+  if(books[0])books[0].notes=[{id:uid(),type:'quote',page:'第900章',content:'万物有灵,亦有其位。',tags:['名场面'],createTime:Date.now()}];
+  setBooks(books);
+  if(books[0])addExcerpt({bookId:books[0].id,text:'万物有灵,亦有其位。',fromImage:false});
+  const c=getCheckins();c.push(today());save(KEY_CHECKIN,c);
+  const dl=getDaily();dl[today()]=3600;save(KEY_DAILY,dl);
+}
+/* 给示例书补日历演示数据(仅针对示例书,一次性;真实书籍的记录来自计时/进度/笔记) */
+function seedCalendarDemo(){
+  if(__rawGet('zwj_caldemo'))return;
+  __rawSet('zwj_caldemo','1');
+  if(Object.keys(getBookDay()).length)return;
+  const books=getBooks();
+  const gm=books.find(b=>b.title==='诡秘之主'), bn=books.find(b=>b.title==='百年孤独');
+  if(!gm&&!bn)return;
+  const day=n=>{const d=new Date(Date.now()-n*86400000);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+  if(gm){logBookDay(gm.id,3600,day(0));logBookDay(gm.id,2700,day(1));logBookDay(gm.id,1800,day(3));logBookDay(gm.id,4500,day(6))}
+  if(bn){logBookDay(bn.id,5400,day(2));logBookDay(bn.id,3600,day(3));logBookDay(bn.id,7200,day(5))}
+}
+
+/* 初始化 */
+const wd=['日','一','二','三','四','五','六'];
+const now=new Date();
+document.getElementById('todayTip').textContent=`${now.getMonth()+1}月${now.getDate()}日 周${wd[now.getDay()]}`;
+if(__rawGet('zwj_seeded')&&!getBooks().length){__rawDel('zwj_seeded');__rawDel('zwj_caldemo')}
+seedIfEmpty();
+seedCalendarDemo();
+getBooks().forEach(b=>{if(b.status==='want'){b.status='reading';if(!b.startTime)b.startTime=Date.now()}});setBooks(getBooks());
+renderAll();
+/* 存储不可用时提示:数据仅当前会话有效,需用「导出 JSON」备份 */
+if(!STORAGE_OK)setTimeout(()=>toast('当前环境无法本地保存,数据仅本次有效,请在「我的」页导出 JSON 备份'),300);
+</script>
+</body>
+</html>

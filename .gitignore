@@ -1,0 +1,13 @@
+# 依赖 / 系统文件
+node_modules/
+.DS_Store
+Thumbs.db
+
+# 本地密钥 / 环境（如以后用 Pages Functions）
+.env
+.dev.vars
+*.local
+
+# 编辑器目录
+.vscode/
+.idea/
