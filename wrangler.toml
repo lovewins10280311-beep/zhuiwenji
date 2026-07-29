@@ -1,0 +1,3 @@
+# Cloudflare Pages 项目配置（供 Wrangler CLI 使用）
+name = "zhuiwenji"
+pages_build_output_dir = "."
