@@ -1752,13 +1752,13 @@ function renderCal(){
        - 纵向定位：bar 的 top = 星期标题行高 + 周行号×固定格高 + 日期区偏移 + 书序行偏移
        - overlay 用 absolute + JS 显式高度（不用 grid 子元素，Safari 上 grid-row stretch 不稳定）
     每格高度固定紧凑(62px)，不随书本数量膨胀，周间距恒定 */
-  const HEADER_H=34;        // 星期标题行高度
-  const TOP_OFFSET=24;       // 日期数字区高度
-  const BAR_H=14;            // bar 高度（紧凑以容纳多行）
-  const BAR_GAP=1;
-  const MAX_VISIBLE_ROWS=5;   // 每格最多显示 5 行 bar
-  // 固定格高 = 日期区 + 5行bar + 余量
-  const cellH=TOP_OFFSET+MAX_VISIBLE_ROWS*(BAR_H+BAR_GAP)+6;  // 24+5*15+6=105
+  const HEADER_H=34;        // 星期标题行高度（.cal-wd padding:8+10 + ~16字体 ≈34）
+  const TOP_OFFSET=26;       // 日期数字区高度（格内偏移）
+  const BAR_H=16;            // bar 高度（略缩小以适配紧凑格）
+  const BAR_GAP=2;
+  const MAX_VISIBLE_ROWS=2;   // 每格最多显示 2 行 bar（超出隐藏，点日期看详情）
+  // 固定紧凑格高：不随书本数量膨胀！= 日期区 + 2行bar + 余量
+  const cellH=62;
   // overlay 覆盖整个 board：从顶部(含星期行)到 6 周数据行底部
   const overlayTop=0;
   const overlayH=HEADER_H+6*cellH;
