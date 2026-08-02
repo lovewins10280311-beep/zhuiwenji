@@ -1645,10 +1645,9 @@ function renderCal(){
     const daySet=new Set();
     if(sp.days){
       // 进行中的书：用实际阅读记录的天
-      // ⚠️ key 的月份是 1-based(如 "07"→7)，calM 是 0-based(8月=7)，必须 -1 对齐，否则相邻月份会错位
       sp.days.forEach(key=>{
         const [y,m,d]=key.split('-');
-        if(Number(y)===calY && (Number(m)-1)===calM)daySet.add(Number(d));
+        if(Number(y)===calY && Number(m)===calM)daySet.add(Number(d));
       });
     } else {
       // 已完结的书：用 start~end 区间遍历本月内的每一天
@@ -1662,7 +1661,7 @@ function renderCal(){
       // 完结后重读日
       if(sp.extra)sp.extra.forEach(key=>{
         const [y,m,d]=key.split('-');
-        if(Number(y)===calY && (Number(m)-1)===calM)daySet.add(Number(d));
+        if(Number(y)===calY && Number(m)===calM)daySet.add(Number(d));
       });
     }
     if(daySet.size>0)bookMonthDays.set(sp.id,daySet);
