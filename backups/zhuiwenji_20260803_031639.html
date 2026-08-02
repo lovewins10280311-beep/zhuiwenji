@@ -459,7 +459,7 @@
   /* ═══ Bars Overlay（v19 核心）：iPhone 日历多日事件风格 ═══
      独立 absolute 定位层，每本书一根/多根横跨多日的 bar，按全局行号定位。
      浅色背景 + 左侧 4px 深色"主题色块" + 深色文字，模拟 Apple Calendar 多日事件条。 */
-  .cal-bars-overlay{position:absolute;left:0;right:0;pointer-events:none;overflow:hidden;z-index:1}
+  .cal-bars-overlay{grid-column:1/-1;grid-row:2/-1;position:relative;overflow:hidden;pointer-events:none;z-index:1}
   .cal-bk-b{font-size:10px;line-height:1.2;color:#3a3a3a;font-weight:600;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
     transition:opacity .12s,box-shadow .12s;border-radius:5px;display:flex;align-items:center;padding:0 6px;
@@ -1747,23 +1747,18 @@ function renderCal(){
   });
 
   /* Bars overlay：每本书一个/多个连续段，按全局行号定位。
-     关键修复（v21-v24）：
+     关键修复（v21）：
        - 列号必须取模 (lead+day-1)%7，落在 0-6，否则月末/跨周段的 left 百分比会溢出屏幕
-       - 纵向定位：bar 的 top = 星期标题行高 + 周行号×固定格高 + 日期区偏移 + 书序行偏移
-       - overlay 用 absolute + JS 显式高度（不用 grid 子元素，Safari 上 grid-row stretch 不稳定）
-    每格高度固定紧凑(62px)，不随书本数量膨胀，周间距恒定 */
-  const HEADER_H=34;        // 星期标题行高度（.cal-wd padding:8+10 + ~16字体 ≈34）
-  const TOP_OFFSET=26;       // 日期数字区高度（格内偏移）
+       - 纵向定位：bar 的 top = 所在周行号×固定格高 + 日期区偏移 + 书序行偏移
+         每格高度固定紧凑(62px)，不随书本数量膨胀，周间距恒定 */
+  const TOP_OFFSET=26;       // 日期数字区高度
   const BAR_H=16;            // bar 高度（略缩小以适配紧凑格）
   const BAR_GAP=2;
   const MAX_VISIBLE_ROWS=2;   // 每格最多显示 2 行 bar（超出隐藏，点日期看详情）
   // 固定紧凑格高：不随书本数量膨胀！= 日期区 + 2行bar + 余量
   const cellH=62;
-  // overlay 覆盖整个 board：从顶部(含星期行)到 6 周数据行底部
-  const overlayTop=0;
-  const overlayH=HEADER_H+6*cellH;
 
-  let barsHtml=`<div class="cal-bars-overlay" style="top:${overlayTop}px;height:${overlayH}px">`;
+  let barsHtml=`<div class="cal-bars-overlay">`;
   bookSegments.forEach((segs,id)=>{
     const b=bookMap[id];if(!b)return;
     // 限制书序行：超出 MAX_VISIBLE_ROWS 的 bar 不显示（避免格高爆炸）
@@ -1780,8 +1775,9 @@ function renderCal(){
       const weekRow=Math.floor((lead+seg.startDay-1)/7); // 第几周(0-5)
       const left=colStart/7*100;
       const width=colSpan/7*100;
-      // top = 星期标题行高 + 周行号×格高 + 日期区偏移(TOP_OFFSET) + 书序行偏移
-      const top=HEADER_H + weekRow*cellH + TOP_OFFSET + bookRow*(BAR_H+BAR_GAP);
+      // top = 周行号×格高 + 日期区偏移(TOP_OFFSET) + 书序行偏移
+      // overlay 从 grid 第2行开始，top=0 对齐第一行数据格的顶部
+      const top=weekRow*cellH + TOP_OFFSET + bookRow*(BAR_H+BAR_GAP);
       barsHtml+=`<div class="cal-bk-b ${seg.startDay===seg.endDay?'single':'multi'}" style="position:absolute;left:calc(${left}% + 1px);width:calc(${width}% - 2px);top:${top}px;height:${BAR_H}px;background:${bg};border-left:3px solid ${accent};pointer-events:auto;overflow:hidden" title="${full}" onclick="event.stopPropagation();openDetail('${id}')">${disp}</div>`;
     });
   });
