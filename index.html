@@ -200,7 +200,6 @@
   .ql-tip{font-size:11.5px;color:var(--text-3);margin-top:10px;line-height:1.7}
   details.timer-fold{margin-top:14px}
   details.timer-fold summary{font-size:12.5px;color:var(--text-2);cursor:pointer;user-select:none;font-weight:600}
-  .checkin{margin-top:18px;display:flex;gap:12px;align-items:center}
 
   /* 空状态 */
   .empty{text-align:center;color:var(--text-3);padding:60px 0}
@@ -426,7 +425,7 @@
   /* 7 列等宽网格,无方块/卡片/表格线;每本书以文字色区分,书名截断 4 字 */
   .cal-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin-top:12px}
   .cal-wd{text-align:center;font-size:11px;font-weight:800;color:var(--text-3);padding:8px 0 10px}
-  .cal-cell{min-height:72px;min-width:0;padding:7px 2px 8px;display:flex;flex-direction:column;gap:3px;
+  .cal-cell{min-height:72px;min-width:0;padding:7px 0 8px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
     cursor:pointer;position:relative;border:none;background:transparent;overflow:hidden;
     transition:transform .12s cubic-bezier(.25,1,.5,1),background .15s,box-shadow .15s}
   .cal-cell:hover{background:var(--accent-weak);transform:scale(1.02);z-index:1}
@@ -439,13 +438,22 @@
     display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3)}
   .cal-cell.sel .cal-dnum{color:var(--accent)}
   .cal-cell.sel{background:rgba(124,58,237,.14);box-shadow:inset 0 0 0 2px rgba(124,58,237,.2)}
-  .cal-books{display:flex;flex-direction:column;gap:2px;align-items:stretch;overflow:hidden;min-width:0}
-  .cal-bk{font-size:9.5px;line-height:1.15;padding:2px 5px;border-radius:6px;color:#fff;font-weight:700;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;box-shadow:0 1px 3px rgba(124,58,237,.18);
-    cursor:pointer;transition:transform .10s,box-shadow .10s,filter .10s;position:relative}
-  .cal-bk:hover{transform:scale(1.06);box-shadow:0 2px 6px rgba(124,58,237,.28);filter:brightness(1.08)}
-  .cal-bk:active{transform:scale(.93)}
-  .cal-bk.more{background:var(--line-2);color:var(--text-3);text-align:center;font-weight:500;box-shadow:none;cursor:default}
+  .cal-books{display:flex;flex-direction:column;gap:2px;align-items:stretch;overflow:visible;min-width:0;position:relative}
+  /* 连续色条：同一本书连续多日阅读时横向跨日连贯显示 */
+  .cal-bk{font-size:9.5px;line-height:1.18;padding:2px 5px;color:#fff;font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:transform .10s,filter .10s;position:relative;display:block;border-radius:6px;
+    box-shadow:0 1px 3px rgba(124,58,237,.18);min-height:15px;display:flex;align-items:center}
+  .cal-bk:hover{filter:brightness(1.08);z-index:2}
+  .cal-bk:active{transform:scale(.95)}
+  /* 连续色条起始日：左侧圆角 + 书名，右侧无圆角向右延伸 */
+  .cal-bk.start{border-radius:6px 0 0 6px;padding-left:4px;z-index:1;margin-right:-1px}
+  /* 连续色条中间日：纯色条延伸，无文字，视觉上与前后连贯；负边距消除单元格间隙 */
+  .cal-bk.mid{border-radius:0;padding:2px 0;min-height:15px;box-shadow:none;cursor:pointer;z-index:1;margin-left:-1px;margin-right:-1px}
+  /* 连续色条结束日：右侧圆角，向左延伸 */
+  .cal-bk.end{border-radius:0 6px 6px 0;padding-right:4px;z-index:1;margin-left:-1px}
+  /* 单独一日（不连续）：独立小药丸 */
+  .cal-bk.single{border-radius:6px;box-shadow:0 1px 3px rgba(124,58,237,.18)}
+  .cal-bk.more{background:var(--line-2);color:var(--text-3);text-align:center;font-weight:500;box-shadow:none;cursor:default;border-radius:6px}
   .cal-bk.more:hover,.cal-bk.more:active{transform:none;filter:none;box-shadow:none}
   /* 阅读强度:当天有越多书,背景越深 */
   .cal-cell.intensity-1{background:rgba(124,58,237,.04)}
@@ -507,15 +515,11 @@
 
 <div class="wrap">
   <!-- ========== 书架 ========== -->
-  <div class="page active" id="page-shelf">
+  <div class="page" id="page-shelf">
     <div class="hero">
-      <div><div class="h-num" id="heroStreak">0</div><div class="h-lab">连续打卡(天)</div></div>
+      <div><div class="h-num" id="heroStreak">0</div><div class="h-lab">连续阅读(天)</div></div>
       <div><div class="h-num" id="heroReading">0</div><div class="h-lab">在读/追更</div></div>
       <div><div class="h-num" id="heroFinished">0</div><div class="h-lab">读完</div></div>
-    </div>
-    <div class="checkin">
-      <button class="btn btn-primary" id="checkinBtn" onclick="doCheckin()">今日打卡</button>
-      <span class="muted" id="checkinTip" style="font-size:13px"></span>
     </div>
     <div class="filters" id="filters">
       <span class="chip active" data-f="all" onclick="setFilter('all')">全部</span>
@@ -536,7 +540,7 @@
   </div>
 
   <!-- ========== 日历 ========== -->
-  <div class="page" id="page-cal">
+  <div class="page active" id="page-cal">
     <div class="card" style="margin-top:18px">
       <div class="cal-view-toggle">
         <button class="cvt on" id="cvtMonth" onclick="setCalView('month')">月视图</button>
@@ -551,7 +555,7 @@
         <div class="cal-month-sum" id="calMonthSum"></div>
         <div id="calGrid"></div>
         <div class="cal-legend" id="calLegend"></div>
-        <div class="muted" style="font-size:11.5px;margin-top:12px;line-height:1.8">每个日期格内显示当天在读的书,每本书用固定颜色区分(见下方图例);起始日带左侧白色竖条表示阅读起点。点任意一天弹出当日清单(含被折叠的 +N 本书),忘了记的日子还能补记。</div>
+        <div class="muted" style="font-size:11.5px;margin-top:12px;line-height:1.8">连续阅读同一本书时，色条会横向跨日连贯显示；每本书用固定颜色区分(见下方图例)。点任意一天弹出当日清单(含被折叠的 +N 本书)，忘了记的日子还能补记。</div>
       </div>
       <div id="yearView" style="display:none"></div>
     </div>
@@ -560,13 +564,13 @@
   <!-- ========== 统计 ========== -->
   <div class="page" id="page-stats">
     <div class="card grow-card" style="margin-top:18px">
-      <div class="card-title">阅读成长 <span class="muted" style="font-size:12px;font-weight:400">坚持打卡，见证成长</span></div>
+      <div class="card-title">阅读成长 <span class="muted" style="font-size:12px;font-weight:400">坚持阅读，见证成长</span></div>
       <div class="grow-static">
         <div class="grow-static-ico">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V11"/><path d="M12 11C12 7 9 4 5 4c0 4 3 7 7 7z"/><path d="M12 13c0-3 2.5-5.5 6.5-6 .5 3.5-2 6-6.5 6z"/></svg>
         </div>
         <div class="grow-static-body">
-          <div class="grow-static-num"><span id="growStreak">0</span> 天 · 连续打卡</div>
+          <div class="grow-static-num"><span id="growStreak">0</span> 天 · 连续阅读</div>
           <div class="grow-static-next" id="growNext">开始你的第一行阅读记录吧</div>
         </div>
       </div>
@@ -578,7 +582,7 @@
       </div>
       <div class="metric">
         <div class="m-ico" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2.77-1.5-3.87C8.98 7.45 9.7 5.8 11 4c.7 1.5 1.5 3 2.5 4.2C15.2 10 16 11.3 16 13a4 4 0 0 1-8 0c0-.5.1-1 .5-1.5z"/></svg></div>
-        <div class="m-num" id="stStreak">0</div><div class="m-lab">连续打卡(天)</div>
+        <div class="m-num" id="stStreak">0</div><div class="m-lab">连续阅读(天)</div>
       </div>
       <div class="metric">
         <div class="m-ico" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/><path d="M14 6l3 3"/></svg></div>
@@ -616,11 +620,6 @@
 
   <!-- ========== 我的 ========== -->
   <div class="page" id="page-me">
-    <div class="card" style="text-align:center;margin-top:18px">
-      <div style="width:62px;height:62px;border-radius:50%;margin:0 auto;background:linear-gradient(145deg,#EDE9F5,#E0DAEE);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:24px;font-weight:800;letter-spacing:1px;box-shadow:var(--clay-chip)">M</div>
-      <div style="font-size:18px;font-weight:800;margin-top:12px;color:var(--text)" id="meName">mumu</div>
-      <div class="muted" style="font-size:12px;margin-top:3px">追文记 · 跨平台阅读记录</div>
-    </div>
     <div class="card">
       <div class="card-title">年度目标</div>
       <div class="set-row">
@@ -635,11 +634,6 @@
     <div class="card">
       <div class="card-title">笔记 & 摘抄 <span class="muted" style="font-size:12px;font-weight:400" id="meExcerptCount"></span></div>
       <div id="meExcerpts"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">打卡记录</div>
-      <div class="set-row"><span class="s-lab">连续打卡</span><span class="muted" id="meStreak">0 天</span></div>
-      <div class="set-row"><span class="s-lab">本月打卡</span><span class="muted" id="meMonth">0 天</span></div>
     </div>
     <div class="card">
       <div class="card-title">数据</div>
@@ -666,11 +660,11 @@
 
 
 <nav>
-  <div class="tab active" data-p="shelf" onclick="switchTab('shelf')">
-    <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 6c-1.8-1.4-4.2-2-8-2v14c3.8 0 6.2.6 8 2 1.8-1.4 4.2-2 8-2V4c-3.8 0-6.2.6-8 2z"/><path d="M12 6v14"/></svg></span>书架
-  </div>
-  <div class="tab" data-p="cal" onclick="switchTab('cal')">
+  <div class="tab active" data-p="cal" onclick="switchTab('cal')">
     <span class="ico"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8.5 3v4M15.5 3v4"/></svg></span>日历
+  </div>
+  <div class="tab" data-p="shelf" onclick="switchTab('shelf')">
+    <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 6c-1.8-1.4-4.2-2-8-2v14c3.8 0 6.2.6 8 2 1.8-1.4 4.2-2 8-2V4c-3.8 0-6.2.6-8 2z"/><path d="M12 6v14"/></svg></span>书架
   </div>
   <div class="tab add" onclick="openAdd()" title="添加书籍">
     <span class="add-ico">＋</span>
@@ -884,13 +878,9 @@ function updateBook(id,patch){
 }
 function deleteBook(id){setBooks(getBooks().filter(b=>b.id!==id))}
 
-/* 打卡 */
+/* 打卡(已废弃，保留函数体避免报错;年视图仍读取历史打卡数据做展示) */
 function getCheckins(){return load(KEY_CHECKIN,[])}
-function doCheckin(){
-  const c=getCheckins();const t=today();
-  if(c.includes(t)){toast('今天已经打过卡啦 ✓');return}
-  c.push(t);save(KEY_CHECKIN,c);toast('打卡成功!');renderShelf();renderMe();
-}
+function doCheckin(){/* 已移除 */}
 function checkinStreak(){
   const c=getCheckins().slice().sort();if(!c.length)return 0;
   const set=new Set(c);let streak=0;let d=new Date();
@@ -902,6 +892,19 @@ function checkinStreak(){
 }
 function checkinMonth(){
   const ym=today().slice(0,7);return getCheckins().filter(x=>x.startsWith(ym)).length;
+}
+
+/* 阅读连续天数：基于 bookday 实际阅读记录，统计连续有阅读的天数 */
+function readingStreak(){
+  const bd=getBookDay();
+  let streak=0;let d=new Date();
+  const t=today();
+  if(!bd[t]||!Object.keys(bd[t]).length)d.setDate(d.getDate()-1);
+  for(;;){
+    const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(bd[k]&&Object.keys(bd[k]).length>0){streak++;d.setDate(d.getDate()-1)}else break
+  }
+  return streak;
 }
 
 /* 工具 */
@@ -922,13 +925,10 @@ function setCategory(c){
   renderBookList();
 }
 function renderShelf(){
-  document.getElementById('heroStreak').textContent=checkinStreak();
+  document.getElementById('heroStreak').textContent=readingStreak();
   const books=getBooks();
   document.getElementById('heroReading').textContent=books.filter(b=>b.status==='reading'||b.status==='serial').length;
   document.getElementById('heroFinished').textContent=books.filter(b=>b.status==='finished').length;
-  const t=today();const done=getCheckins().includes(t);
-  document.getElementById('checkinBtn').textContent=done?'✓ 今日已打卡':'今日打卡';
-  document.getElementById('checkinTip').textContent=done?('本月已打卡 '+checkinMonth()+' 天'):'记录今天读书了~';
   renderBookList();
 }
 function renderBookList(){
@@ -940,6 +940,13 @@ function renderBookList(){
     const ok=map[curCategory]||[];
     books=books.filter(b=>ok.includes(b.bookType));
   }
+  /* 今日有阅读动作(点过「今日已读」)的书置顶，按最后阅读时间倒序(最近读的更靠前);其余保持原有相对顺序(稳定排序) */
+  books.sort((a,b)=>{
+    const ta=isReadToday(a.id),tb=isReadToday(b.id);
+    if(ta!==tb)return tb?1:-1;  // 已读优先
+    if(ta&&tb)return(b.lastReadTime||0)-(a.lastReadTime||0);  // 同为已读，最近读的靠前
+    return 0;
+  });
   if(!books.length){
     box.innerHTML='<div class="empty"><div class="e-ico"><svg viewBox="0 0 24 24"><path d="M12 6c-1.8-1.4-4.2-2-8-2v14c3.8 0 6.2.6 8 2 1.8-1.4 4.2-2 8-2V4c-3.8 0-6.2.6-8 2z"/><path d="M12 6v14"/></svg></div><div>'+(getBooks().length?'这个筛选条件下暂时没有书':'还没有书,点上方「＋ 添加书籍」添加第一本')+'</div></div>';return;
   }
@@ -1073,10 +1080,12 @@ function commitBook(){
   else finishTime=0;
   if(curEditId){
     updateBook(curEditId,{title,author,bookType,platform,totalPages,cover,status,startTime,finishTime});
-    closeMask('addMask');toast('已更新');renderShelf();renderStats();return;
+    closeMask('addMask');toast('已更新');renderShelf();renderStats();renderCal();
+    if(curDetailId)renderDetail();  // 从详情页编辑时同步刷新详情弹窗
+    return;
   }
   addBook({title,author,bookType,platform,totalPages,cover,status,startTime,finishTime});
-  closeMask('addMask');toast('已入架');renderShelf();
+  closeMask('addMask');toast('已入架');renderShelf();renderCal();
 }
 
 /* ============ 书详情 ============ */
@@ -1217,7 +1226,7 @@ function setStatus(s){
   updateBook(curDetailId,patch);
   if(s==='finished'||s==='reading'||s==='serial')logBookDay(curDetailId,0);
   if(s==='dropped')toast('弃了弃了,下一本');
-  renderDetail();renderShelf();renderStats();
+  renderDetail();renderShelf();renderStats();renderCal();
 }
 function openDateEdit(){
   const b=getBook(curDetailId);if(!b)return;
@@ -1235,7 +1244,7 @@ function saveDateEdit(){
   else if(b.status==='finished') patch.finishTime=(b.finishTime||Date.now());
   else patch.finishTime=0;
   updateBook(curDetailId,patch);
-  closeMask('dateMask');renderDetail();renderShelf();renderStats();
+  closeMask('dateMask');renderDetail();renderShelf();renderStats();renderCal();
 }
 function saveProgress(){
   const v=parseInt(document.getElementById('dCurPage').value)||0;
@@ -1397,7 +1406,7 @@ function renderStats(){
   const totalSec=books.reduce((s,b)=>s+(b.totalReadTime||0),0);
   const noteTotal=books.reduce((s,b)=>s+((b.notes||[]).length),0);
   document.getElementById('stFinished').textContent=finished.length;
-  document.getElementById('stStreak').textContent=checkinStreak();
+  document.getElementById('stStreak').textContent=readingStreak();
   document.getElementById('stNotes').textContent=noteTotal;
 
   // 年度目标
@@ -1448,12 +1457,12 @@ function renderStats(){
     {min:200,name:'阅读宗师'}
   ];
   function renderGrowthStatic(){
-    const streak=checkinStreak();
+    const streak=readingStreak();
     const el=document.getElementById('growStreak'); if(el)el.textContent=streak;
     const nx=document.getElementById('growNext'); if(!nx)return;
     let next=null;
     for(const m of GROWTH_MILESTONES){ if(streak<m.min){next=m;break;} }
-    if(next){ nx.textContent='再连续打卡 '+(next.min-streak)+' 天，达成「'+next.name+'」'; }
+    if(next){ nx.textContent='再连续阅读 '+(next.min-streak)+' 天，达成「'+next.name+'」'; }
     else { nx.textContent='已达成全部阅读里程碑，了不起的阅读者！'; }
   }
 
@@ -1605,6 +1614,26 @@ function renderCal(){
   }
   while(cells.length%7!==0 || cells.length<42)cells.push(null);  // 补齐 6 周网格
 
+  /* ═══ 连续色条检测：为每本书在当月的出现日期建立索引，标记连续段位置(start/mid/end/single) ═══ */
+  // 1) 收集每本书在本月出现的所有日期(1-based day number)
+  const bookDayMap=new Map(); // bookId → sorted array of day numbers
+  cells.forEach(c=>{if(!c)return;c.cover.forEach(o=>{if(!bookDayMap.has(o.id))bookDayMap.set(o.id,[]);bookDayMap.get(o.id).push(c.d)})});
+  bookDayMap.forEach(arr=>arr.sort((a,b)=>a-b));
+  // 2) 对每本书的日期列表拆分为连续段，生成位置查找表 (day→bookId→pos)
+  const posMap=new Map(); // "day,bookId" → 'start'|'mid'|'end'|'single'
+  bookDayMap.forEach((days,bid)=>{
+    let i=0;
+    while(i<days.length){
+      let j=i+1;
+      while(j<days.length && days[j]===days[j-1]+1)j++;
+      // days[i..j-1] 是一个连续段
+      const len=j-i;
+      if(len===1){posMap.set(days[i]+','+bid,'single')}
+      else{for(let k=i;k<j;k++)posMap.set(days[k]+','+bid,(k===i?'start':k===j-1?'end':'mid'))}
+      i=j;
+    }
+  });
+
   const wd=['日','一','二','三','四','五','六'];
   let html=wd.map(w=>`<div class="cal-wd">${w}</div>`).join('');
   cells.forEach(c=>{
@@ -1614,14 +1643,20 @@ function renderCal(){
     c.cover.forEach(o=>{
       if(shown>=3)return;
       const b=bookMap[o.id], col=bookColor(o.id), full=esc(b.title);
-      // 区间内每一天都显示书名 + 该书色条,直观呈现阅读跨度;所有色条统一渲染规则,保持视觉对齐一致
       const disp=esc(b.title.length>4?b.title.slice(0,4):b.title);
-      const cls='cal-bk';
-      pills+=`<span class="${cls}" style="background:${col}" title="${full} · 点击查看详情" onclick="event.stopPropagation();openDetail('${o.id}')">${disp}</span>`;
+      // 根据连续色条位置决定样式：连续段起始显示书名、中间纯色延伸、末尾圆角收断、单独一日独立药丸
+      const pos=posMap.get(c.d+','+o.id)||'single';
+      const cls='cal-bk '+pos;
+      if(pos==='mid'){
+        // 中间日：纯色条无文字，视觉连贯
+        pills+=`<span class="${cls}" style="background:${col}" title="${full} · 第 ${c.d} 日" onclick="event.stopPropagation();openDetail('${o.id}')"></span>`;
+      } else {
+        pills+=`<span class="${cls}" style="background:${col}" title="${full} · 点击查看详情" onclick="event.stopPropagation();openDetail('${o.id}')">${disp}</span>`;
+      }
       shown++;
     });
     if(c.cover.length>3)pills+=`<span class="cal-bk more">+${c.cover.length-3}</span>`;
-    // ⑤ 阅读强度:当天书籍数决定背景深浅
+    // 阅读强度:当天书籍数决定背景深浅
     const intensity=c.cover.length>=3?'3plus':c.cover.length===2?'2':c.cover.length===1?'1':'';
     html+=`<div class="cal-cell ${isToday?'today':''} ${isSel?'sel':''} ${intensity?'intensity-'+intensity:''}" onclick="selectDay('${c.key}')" style="animation-delay:${Math.floor((c.d+lead)/7)*40+(c.d+lead)%7*30}ms">
       <span class="cal-dnum">${c.d}</span>
@@ -1659,9 +1694,8 @@ function renderDayDetail(){
   Object.keys(bdDay).forEach(id=>{ if(!have.has(id)&&bookMap[id]) spanBooks.push({id,start:selDay,days:new Set([selDay]),end:selDay}); });
   // 与日历网格 pill 保持一致的全局排序(起始日期升序)
   spanBooks.sort((a,b)=>{const sa=bookMap[a.id]?bookMap[a.id].startTime:0;const sb=bookMap[b.id]?bookMap[b.id].startTime:0;return sa-sb||a.id.localeCompare(b.id)});
-  const chk=getCheckins().includes(selDay);
   const [y,m,d]=selDay.split('-');
-  document.getElementById('dvTitle').innerHTML=`${+m} 月 ${+d} 日 <span class="muted" style="font-size:12px;font-weight:400">${chk?'· 已打卡 ✓':''}${spanBooks.length?(' · 共 '+spanBooks.length+' 本'):''}</span>`;
+  document.getElementById('dvTitle').innerHTML=`${+m} 月 ${+d} 日 <span class="muted" style="font-size:12px;font-weight:400">${spanBooks.length?(' · 共 '+spanBooks.length+' 本'):''}</span>`;
   const rows=spanBooks.map(s=>{
     const b=bookMap[s.id], col=bookColor(s.id);
     const days=s.days?s.days.size:(dayDiff(s.start,s.end)+1);
@@ -1685,7 +1719,7 @@ function renderDayDetail(){
       <button class="btn btn-ghost btn-sm" onclick="dayBacklog()">补记这天读过</button>
     </div>`:'';
   document.getElementById('dvBody').innerHTML=
-    (rows.length?rows.join(''):'<div style="padding:20px 8px;text-align:center"><div style="font-size:28px;margin-bottom:6px">📖</div><div class="muted" style="font-size:13px">这一天还没有阅读记录</div><div class="muted" style="font-size:11.5px;margin-top:4px">'+(chk?'已打卡 ✓ · 记一笔开始追踪吧':'选一本书，记下今天的阅读')+'</div></div>')
+    (rows.length?rows.join(''):'<div style="padding:20px 8px;text-align:center"><div style="font-size:28px;margin-bottom:6px">📖</div><div class="muted" style="font-size:13px">这一天还没有阅读记录</div><div class="muted" style="font-size:11.5px;margin-top:4px">选一本书，记下今天的阅读</div></div>')
     +backlog;
   openMask('dayViewMask');   // 以弹窗形式展示当日全部书籍(含被日历折叠的 +N 本)
 }
@@ -1747,8 +1781,6 @@ function gotoMonth(m){calM=m;calView='month';setCalView('month')}
 function renderMe(){
   const set=getSettings();
   document.getElementById('goalVal').textContent=set.yearGoal||0;
-  document.getElementById('meStreak').textContent=checkinStreak()+' 天';
-  document.getElementById('meMonth').textContent=checkinMonth()+' 天';
   const ex=getExcerpts();
   const allNotes=[];
   getBooks().forEach(b=>(b.notes||[]).forEach(n=>allNotes.push({bookId:b.id,id:n.id,type:n.type,page:n.page,content:n.content,tags:n.tags,createdAt:n.createTime||0})));
