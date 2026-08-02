@@ -1786,15 +1786,12 @@ function renderCal(){
       barsHtml+=`<div class="cal-bk-b ${seg.startDay===seg.endDay?'single':'multi'}" style="position:absolute;left:calc(${left}% + 1px);width:calc(${width}% - 2px);top:${top}px;height:${BAR_H}px;background:${bg};border-left:3px solid ${accent};pointer-events:auto;overflow:hidden" title="${full}" onclick="event.stopPropagation();openDetail('${id}')">${disp}</div>`;
     });
   });
+  // 🔴 DEBUG: 强制可见诊断信息（确认后删除此行及下行）
+  const segCount=[...bookSegments.values()].reduce((s,a)=>s+a.length,0);
+  barsHtml+=`<div style="position:relative;background:red;color:#fff;font-size:14px;padding:4px 8px;z-index:999">🔴 BARS-DEBUG: ${segCount} segments | maxRow=${maxRow} | cellH=${cellH} | books=${[...bookSegments.keys()].length}</div>`;
   barsHtml+=`</div>`;
 
-  // 🔴 DEBUG v3: 诊断信息放在 boardH 最顶部（overlay 外部），不可能被任何 CSS 裁剪或隐藏
-  const segCount=[...bookSegments.values()].reduce((s,a)=>s+a.length,0);
-  const debugInfo=`<div style="background:#ff0000;color:#fff;font-size:15px;font-weight:bold;padding:8px;margin-bottom:4px;border-radius:8px;z-index:9999;position:relative">
-    🔴 DIAG: segs=${segCount} | maxRow=${maxRow} | cellH=${cellH} | books=${[...bookSegments.keys()].length} | monthBooks=${monthBooks.size} | lead=${lead}
-  </div>`;
-
-  const boardH=`<div class="cal-board" style="--cell-h:${cellH}px;position:relative">${debugInfo}${html}${barsHtml}</div>`;
+  const boardH=`<div class="cal-board" style="--cell-h:${cellH}px;position:relative">${html}${barsHtml}</div>`;
   document.getElementById('calGrid').innerHTML=boardH;
 
   // 月度小结
