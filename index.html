@@ -324,6 +324,20 @@
   /* 日视图弹窗：书籍较多时内部滚动,避免撑破弹窗 */
   #dvBody{max-height:64vh;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:6px}
   #dvBody .day-book:first-child{padding-top:4px}
+  /* ═══ 纵向时间轴（v19）：iPhone 日历日视图风格 ═══ */
+  .dv-axis{display:flex;gap:8px;padding:4px 0 8px}
+  .dv-scale{flex-shrink:0;width:46px;border-right:1px solid var(--line)}
+  .dv-hour{position:relative;font-size:10.5px;color:var(--text-3);font-weight:600;padding-right:6px;text-align:right}
+  .dv-hour span{position:absolute;right:6px;top:-6px;background:var(--surface-glass);padding:0 2px}
+  .dv-panel{flex:1;position:relative;min-width:0}
+  .dv-slot{position:absolute;left:0;right:0;height:1px;background:var(--line-2);opacity:.5}
+  .dv-event{position:absolute;left:6px;right:6px;min-height:24px;padding:4px 8px;border-radius:6px;
+    color:#3a3a3a;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;
+    box-shadow:0 1px 2px rgba(0,0,0,.06);transition:transform .12s}
+  .dv-event:hover{transform:translateX(2px)}
+  .dv-event:active{transform:scale(.98)}
+  .dv-time{font-size:11px;font-weight:700;color:#3a3a3a;flex-shrink:0;opacity:.75;font-variant-numeric:tabular-nums}
+  .dv-title{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
   .cal-month-sum{display:flex;gap:18px;margin-top:6px;font-size:12px;color:var(--text-2);flex-wrap:wrap;font-weight:600}
 
   .hist-item{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer}
@@ -425,11 +439,11 @@
   }
 
   /* ============ 日历月视图：无边框简洁风格 ============ */
-  /* 7 列等宽网格,无方块/卡片/表格线;每本书以颜色区分,书名截断 */
+  /* 7 列等宽网格,无方块/卡片/表格线;每本书以颜色区分 */
   .cal-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin-top:12px;position:relative}
   .cal-wd{text-align:center;font-size:11px;font-weight:800;color:var(--text-3);padding:8px 0 10px}
-  /* 单元格：去掉左右内边距和 overflow:hidden，让跨日色条的负边距能真正延伸到相邻单元格里外 */
-  .cal-cell{min-height:82px;min-width:0;padding:7px 0 5px;display:flex;flex-direction:column;gap:1.5px;
+  /* 单元格：高度由 JS 根据本月最多 bar 行数动态设置(--cell-h);仅含日期数字,bars 在独立 overlay */
+  .cal-cell{min-height:var(--cell-h,82px);min-width:0;padding:7px 0 5px;display:flex;flex-direction:column;
     cursor:pointer;position:relative;border:none;background:transparent;
     transition:transform .12s cubic-bezier(.25,1,.5,1),background .15s,box-shadow .15s}
   .cal-cell:hover{background:var(--accent-weak);transform:scale(1.02);z-index:1}
@@ -437,33 +451,25 @@
   .cal-cell.out{background:transparent;cursor:default;transform:none}
   .cal-cell.out:hover{background:transparent}
   .cal-cell.out .cal-dnum{color:var(--text-3);opacity:.45}
-  /* 日期数字与色条都通过 padding-left 微调对齐到单元格内 */
   .cal-dnum{font-size:12px;font-weight:700;color:var(--text-2);line-height:1.3;align-self:flex-start;padding-left:6px}
   .cal-cell.today .cal-dnum{background:var(--accent);color:#fff;border-radius:50%;width:21px;height:21px;
     display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3);padding-left:0}
   .cal-cell.sel .cal-dnum{color:var(--accent)}
   .cal-cell.sel{background:rgba(124,58,237,.14);box-shadow:inset 0 0 0 2px rgba(124,58,237,.2)}
-  .cal-books{display:flex;flex-direction:column;gap:2px;overflow:visible;min-width:0;position:relative;z-index:1}
-  /* ═══ 连续色条：Apple Calendar 风格 · 亮彩淡色 + 跨日连贯（v18 核心修复） ═══
-     关键：去掉 .cal-cell 水平 padding 后，bar 可用负边距 ±2px 真正跨过单元格边界。
-     start=连续段首日(显示书名+左圆角) mid=延伸中(纯色条无文字)
-     end=连续段末日(右圆角纯块) single=独立一日(显示书名全圆角) */
-  .cal-bk{font-size:10px;line-height:1.3;color:#3a3a3a;font-weight:600;
+  /* ═══ Bars Overlay（v19 核心）：iPhone 日历多日事件风格 ═══
+     独立 absolute 定位层，每本书一根/多根横跨多日的 bar，按全局行号定位。
+     浅色背景 + 左侧 4px 深色"主题色块" + 深色文字，模拟 Apple Calendar 多日事件条。 */
+  .cal-bars-overlay{position:absolute;left:0;right:0;top:26px;pointer-events:none}
+  .cal-bk-b{font-size:10px;line-height:1.2;color:#3a3a3a;font-weight:600;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
-    transition:opacity .12s;border-radius:6px;display:block;min-height:20px;display:flex;align-items:center}
-  .cal-bk:hover{opacity:.75;z-index:2}
-  .cal-bk:active{opacity:.55}
-  /* 连续段起始日：左圆角 + 书名 + 右侧无圆角(向右延伸) */
-  .cal-bk.start{border-radius:6px 0 0 6px;padding:2px 6px;z-index:1;margin-right:-2px}
-  /* 连续段中间日：纯色条延伸，无文字，无圆角，负边距连接前后两个单元格 */
-  .cal-bk.mid{border-radius:0;padding:2px 0;min-height:20px;z-index:1;margin-left:-2px;margin-right:-2px}
-  /* 连续段结束日：右圆角纯色块，不显示书名（表示"已读完"） */
-  .cal-bk.end{border-radius:0 6px 6px 0;padding:2px 6px;z-index:1;margin-left:-2px}
-  /* 独立一日（不连续）：完整圆角标签，显示书名 */
-  .cal-bk.single{border-radius:6px;padding:2px 6px}
-  /* 折叠计数：超出4本时显示 +N */
-  .cal-bk.more{background:transparent;color:var(--text-3);text-align:center;font-weight:600;padding:1px 0;cursor:default;min-height:auto;border-radius:6px}
-  .cal-bk.more:hover,.cal-bk.more:active{opacity:1}
+    transition:opacity .12s,box-shadow .12s;border-radius:5px;display:flex;align-items:center;padding:0 6px;
+    box-sizing:border-box}
+  .cal-bk-b:hover{opacity:.85;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  .cal-bk-b:active{opacity:.7}
+  /* 独立一日：完整圆角 */
+  .cal-bk-b.single{border-radius:5px}
+  /* 跨日横条：左圆角小，右端不留圆角让下一段衔接；border-left 4px 模拟 Apple 主题色标签 */
+  .cal-bk-b.multi{border-radius:5px 2px 2px 5px}
 
   /* ============ 摘抄模块 ============ */
   .excerpt-item{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
@@ -823,7 +829,7 @@
 
 <script>
 /* ============ 数据层(localStorage) ============ */
-const KEY_BOOKS='zwj_books', KEY_CHECKIN='zwj_checkins', KEY_SET='zwj_settings', KEY_DAILY='zwj_daily', KEY_BOOKDAY='zwj_bookday', KEY_PLANS='zwj_plans', KEY_EXCERPTS='zwj_excerpts';
+const KEY_BOOKS='zwj_books', KEY_CHECKIN='zwj_checkins', KEY_SET='zwj_settings', KEY_DAILY='zwj_daily', KEY_BOOKDAY='zwj_bookday', KEY_PLANS='zwj_plans', KEY_EXCERPTS='zwj_excerpts', KEY_BOOKTIMES='zwj_booktimes';
 const TYPE_LABEL={physical:'实体书',online:'线上小说',fanfic:'同人文',other:'其他'};
 const STATUS_LABEL={want:'入坑',reading:'在读',serial:'追更',finished:'读完',dropped:'弃文'};
 const STATUS_ORDER=['reading','serial','finished','dropped'];
@@ -849,12 +855,19 @@ function getDaily(){return load(KEY_DAILY,{})}
 function addDaily(sec,dateStr){const d=getDaily();const k=dateStr||today();d[k]=(d[k]||0)+sec;save(KEY_DAILY,d)}
 /* 每日·每本书阅读记录 {日期:{bookId:秒数}}，日历页数据源 */
 function getBookDay(){return load(KEY_BOOKDAY,{})}
+function getBookTimes(){return load(KEY_BOOKTIMES,{})}
+/* logBookDay：累计分钟数；同时记录当前时间戳到 zwj_booktimes（按天+书存多个时间戳数组），用于日视图时间轴 */
 function logBookDay(bookId,sec,dateStr){
   if(!bookId)return;
   const d=getBookDay();const k=dateStr||today();
   if(!d[k])d[k]={};
   d[k][bookId]=(d[k][bookId]||0)+(sec||0);
   save(KEY_BOOKDAY,d);
+  // 同步记录时间戳
+  const ts=getBookTimes();if(!ts[k])ts[k]={};
+  if(!ts[k][bookId])ts[k][bookId]=[];
+  ts[k][bookId].push(Date.now());
+  save(KEY_BOOKTIMES,ts);
 }
 /* 今天是否已为某本书留下阅读记录(键存在即算,0 时长也计入,与「记一笔(0 分钟)」一致) */
 function isReadToday(id){const bd=getBookDay()[today()];return !!(bd&&(id in bd))}
@@ -1507,29 +1520,49 @@ const BOOK_COLOR_KEY='zwj_colors';
 function getColorMap(){try{return JSON.parse(localStorage.getItem(BOOK_COLOR_KEY))||{}}catch(e){return {}}}
 function setColorMap(m){try{localStorage.setItem(BOOK_COLOR_KEY,JSON.stringify(m))}catch(e){}}
 
-/* ═══ 书籍颜色：Apple Calendar 风格 · 亮彩淡色（v18） ═══
-   从 iPhone 苹果日历多日事件条精确提取的配色规律：
-   每个颜色 = 中高饱和(40-65%) + 高明度(78-88%) 的"亮粉彩"。
-   特征：颜色清晰可见(不是发灰的水彩)，但保持柔和不刺眼，深字(#3a3a3a)清晰可读。
-   参考实际值：#FFB088(亮橘)/ #A8D5A8(清绿)/ #FFB8C8(亮粉)/ #B8D5F0(亮蓝)。
-   16 色覆盖全色相环，相邻色保持足够区分度。 */
+/* ═══ 书籍颜色：图1 iPhone日历真实色板（v19 重大修复） ═══
+   从用户提供的 5×3 色板截图精确提取：
+   • Row1 浅色背景：#7EDBD2 #BEEFEA #FFD94D #FFC7DE #B7D6F7
+   • Row2 深色图标：#008E6B #46B065 #81C570 #DCECB5 #E8F1DC
+   • Row3 变体背景：#97D72D #DFF195 #F1E9CA #FFE0C6 #F0C2BF
+   视觉特征：bar 用浅色铺满 + 左侧 3-4px 深色小色块(text 仍深色 #3a3a3a)。
+   这是 Apple Calendar 多日事件的实际呈现方式（不是单一浅彩底）。 */
 const BOOK_BASE_COLORS=[
-  '#FFB088',  // 亮橘(《被讨厌的勇气》风)
-  '#FFB8C8',  // 亮粉(《痛后周期》风)
-  '#A8D5A8',  // 清绿(《老友记》风)
-  '#B8D5F0',  // 亮蓝
-  '#C8B0E5',  // 亮紫
-  '#FFE08A',  // 亮黄
-  '#88D5CC',  // 青绿
-  '#FFC8A0',  // 桃色
-  '#F5A8C8',  // 玫瑰粉
-  '#A8B5E5',  // 靛蓝
-  '#C8E58A',  // 亮柠檬
-  '#FFA8A8',  // 珊瑚红
-  '#88C5E5',  // 亮青
-  '#E5A8D5',  // 紫红
-  '#B8A8E5',  // 薰衣草
-  '#A8C5C5',  // 鼠尾草
+  '#BEEFEA',  // 薄荷浅
+  '#B7D6F7',  // 天空浅蓝
+  '#FFC7DE',  // 樱花粉
+  '#DCECB5',  // 嫩黄绿
+  '#FFD94D',  // 亮黄
+  '#E8F1DC',  // 极嫩绿
+  '#FFE0C6',  // 蜜桃
+  '#F1E9CA',  // 奶油
+  '#DFF195',  // 柠檬绿
+  '#7EDBD2',  // 青绿
+  '#F0C2BF',  // 玫粉
+  '#FFCCD5',  // 桃花
+  '#C5E8D8',  // 鼠尾草
+  '#A8D5E5',  // 蓝绿
+  '#E0F0D5',  // 开心果
+  '#FFE5B4',  // 浅橙
+];
+/* 左侧深色小色块（每本书对应一种"主题色"，深色块贴在bar最左侧3-4px） */
+const BOOK_ACCENT_COLORS=[
+  '#008E6B',  // 深青绿
+  '#3D7BD9',  // 深蓝
+  '#FF7BAA',  // 深粉
+  '#46B065',  // 深绿
+  '#FFB800',  // 深黄
+  '#7BA821',  // 深黄绿
+  '#E89B5C',  // 深橙
+  '#D4A020',  // 深琥珀
+  '#5FA00F',  // 深柠
+  '#005038',  // 墨青
+  '#D87070',  // 深玫
+  '#E5508C',  // 深桃
+  '#2D8040',  // 深鼠尾草
+  '#1E5B8C',  // 深天蓝
+  '#4A7D2A',  // 深开心果
+  '#CC7722',  // 深橘
 ];
 
 /* HSL→HEX */
@@ -1577,6 +1610,17 @@ function calMove(d){
   selDay=null;renderCal();
 }
 function dstr(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+/* 书籍的左侧深色小色块（与浅色背景配对，对应 iPhone 日历多日事件的"主题色标签"） */
+function accentColor(id){
+  const bg=bookColor(id);
+  const idx=BOOK_BASE_COLORS.indexOf(bg);
+  if(idx>=0)return BOOK_ACCENT_COLORS[idx];
+  // 旧数据或动态生成色：根据背景明度反推一个深色
+  const hex=bg.slice(1);
+  const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
+  const f=c=>Math.max(0,Math.round(c*0.45));
+  return '#'+f(r).toString(16).padStart(2,'0')+f(g).toString(16).padStart(2,'0')+f(b).toString(16).padStart(2,'0');
+}
 /* 每本书的「阅读区间」:有完结/弃文日期的按 [开始,完结] 区间铺带;
    进行中(在读/追更)且未填结束日的,只标注实际有阅读记录的天(来自 bookday),
    避免把未结束的书错误地铺满从开始到今天的每一天 */
@@ -1617,7 +1661,8 @@ function renderCal(){
   const cells=[];
   for(let i=0;i<lead;i++)cells.push(null);        // 上月补位(淡显)
   const spans=bookSpans();   // 每本书 [开始,完结] 区间(用于整段高亮)
-  /* ═══ 预计算：每本书在本月的所有出现日期（用于 streak 排序） ═══ */
+
+  /* ═══ 预计算：每本书在本月的所有出现日期 ═══ */
   const bookMonthDays=new Map(); // bookId → Set of day numbers (1-based)
   spans.forEach(sp=>{
     if(!sp.days)return;
@@ -1629,147 +1674,206 @@ function renderCal(){
       }
     });
   });
-  /* 辅助：给定书+日期，backwardStreak（含当天往前连续几天）*/
-  function bStreak(bid,day){const days=bookMonthDays.get(bid);if(!days||!days.has(day))return 0;let n=0,d=day;while(days.has(d)){n++;d--;}return n}
-  /* 辅助：forwardStreak（含当天往后连续几天）*/
-  function fStreak(bid,day){const days=bookMonthDays.get(bid);if(!days||!days.has(day))return 0;let n=0,d=day;while(days.has(d)){n++;d++;}return n}
+
+  /* ═══ 全局行索引（v19 关键修复） ═══
+     为本月出现的每本书分配固定行号(0,1,2...)，同一本书在所有日期始终在同一行，
+     bars 用独立 overlay 层 absolute 定位跨日横铺，从根本上消除跨日截断错位。
+     排序规则：最长连续天数 DESC → 起始日期 ASC → ID ASC */
+  const bookLongestStreak=new Map(); // bookId → 该书本月最长连续天数
+  bookMonthDays.forEach((days,id)=>{
+    const sorted=[...days].sort((a,b)=>a-b);
+    let maxS=1,curS=1;
+    for(let i=1;i<sorted.length;i++){
+      if(sorted[i]===sorted[i-1]+1){curS++;if(curS>maxS)maxS=curS}
+      else curS=1;
+    }
+    bookLongestStreak.set(id,maxS);
+  });
+  const bookGlobalRow=new Map(); // bookId → 固定行号
+  [...bookMonthDays.keys()]
+    .sort((a,b)=>{
+      const sDiff=(bookLongestStreak.get(b)||0)-(bookLongestStreak.get(a)||0);
+      if(sDiff!==0)return sDiff;
+      const fA=Math.min(...bookMonthDays.get(a));
+      const fB=Math.min(...bookMonthDays.get(b));
+      if(fA!==fB)return fA-fB;
+      return a.localeCompare(b);
+    })
+    .forEach((id,idx)=>bookGlobalRow.set(id,idx));
+
+  /* 每本书的连续阅读段 [{startDay,endDay}]（用于跨日 bar 横铺定位） */
+  const bookSegments=new Map();
+  bookMonthDays.forEach((days,id)=>{
+    const sorted=[...days].sort((a,b)=>a-b);
+    const segs=[];let i=0;
+    while(i<sorted.length){
+      let j=i+1;
+      while(j<sorted.length && sorted[j]===sorted[j-1]+1)j++;
+      segs.push({startDay:sorted[i],endDay:sorted[j-1]});
+      i=j;
+    }
+    bookSegments.set(id,segs);
+  });
+
   for(let d=1;d<=daysIn;d++){
     const key=dstr(calY,calM,d);
-    // 当天是否属于某本书的阅读区间:有结束日的按区间判断;进行中的只认实际阅读记录天
     const cover=[];
     spans.forEach(sp=>{
       const inSpan=sp.days?sp.days.has(key):(key>=sp.start && key<=sp.end);
-      const hit=inSpan || (sp.extra&&sp.extra.has(key));   // 完结后重读日也点亮
+      const hit=inSpan || (sp.extra&&sp.extra.has(key));
       if(hit){
         const days=sp.days?sp.days.size:(dayDiff(sp.start,sp.end)+1);
-        cover.push({id:sp.id, isStart:key===sp.start, days});
+        cover.push({id:sp.id,days});
         if(!monthBooks.has(sp.id))monthBooks.set(sp.id,days);
       }
     });
-    if(cover.length){
-      /* 连续阅读优先排序：backwardStreak 大的（正在连续读的书）置顶 → forwardStreak → 总跨度 → 起始时间 → ID
-         不固定行位，但 streak 数据保证连续多天的书在相邻日期始终排在相近位置 */
-      cover.sort((a,b)=>bStreak(b.id,d)-bStreak(a.id,d)||fStreak(b.id,d)-fStreak(a.id,d)
-        ||(bookMonthDays.get(b.id)?.size||0)-(bookMonthDays.get(a.id)?.size||0)
-        ||(bookMap[a.id]?bookMap[a.id].startTime:0)-(bookMap[b.id]?bookMap[b.id].startTime:0)
-        ||a.id.localeCompare(b.id));
-      coveredDays++;
-    }
+    if(cover.length)coveredDays++;
     cells.push({key,d,cover});
   }
-  while(cells.length%7!==0 || cells.length<42)cells.push(null);  // 补齐 6 周网格
-
-  /* ═══ 连续色条检测：为每本书在当月的出现日期建立索引，标记连续段位置(start/mid/end/single) ═══ */
-  // 1) 收集每本书在本月出现的所有日期(1-based day number)
-  const bookDayMap=new Map(); // bookId → sorted array of day numbers
-  cells.forEach(c=>{if(!c)return;c.cover.forEach(o=>{if(!bookDayMap.has(o.id))bookDayMap.set(o.id,[]);bookDayMap.get(o.id).push(c.d)})});
-  bookDayMap.forEach(arr=>arr.sort((a,b)=>a-b));
-  // 2) 对每本书的日期列表拆分为连续段，生成位置查找表 (day→bookId→pos)
-  const posMap=new Map(); // "day,bookId" ��� 'start'|'mid'|'end'|'single'
-  bookDayMap.forEach((days,bid)=>{
-    let i=0;
-    while(i<days.length){
-      let j=i+1;
-      while(j<days.length && days[j]===days[j-1]+1)j++;
-      // days[i..j-1] 是一个连续段
-      const len=j-i;
-      if(len===1){posMap.set(days[i]+','+bid,'single')}
-      else{for(let k=i;k<j;k++)posMap.set(days[k]+','+bid,(k===i?'start':k===j-1?'end':'mid'))}
-      i=j;
-    }
-  });
+  while(cells.length%7!==0 || cells.length<42)cells.push(null);
 
   const wd=['日','一','二','三','四','五','六'];
   let html=wd.map(w=>`<div class="cal-wd">${w}</div>`).join('');
+
+  /* 渲染：单元格(仅含日期数字) + bars overlay(absolute 定位横跨多日) */
   cells.forEach(c=>{
     if(c===null){html+=`<div class="cal-cell out"></div>`;return;}
     const isToday=c.key===t, isSel=c.key===selDay;
-    let pills='', shown=0;
-    c.cover.forEach(o=>{
-      if(shown>=4)return;
-      const b=bookMap[o.id], col=bookColor(o.id), full=esc(b.title);
-      const disp=esc(b.title.length>5?b.title.slice(0,5):b.title);
-      // 根据连续色条位置决定样式与文字：
-      // start → 显示书名(起始日，左圆角)；mid → 纯色条无文字(延伸中)；end → 纯色块(右圆角，表示读完)；single → 显示书名(独立一日)
-      const pos=posMap.get(c.d+','+o.id)||'single';
-      const cls='cal-bk '+pos;
-      if(pos==='mid'){
-        // 中间日：纯色条延伸，无文字，视觉连贯
-        pills+=`<span class="${cls}" style="background:${col}" title="${full} · 第 ${c.d} 日" onclick="event.stopPropagation();openDetail('${o.id}')"></span>`;
-      } else if(pos==='end'){
-        // 结束日：纯色块右圆角，不显示书名（表示"已读完"）
-        pills+=`<span class="${cls}" style="background:${col}" title="${full} · 读完" onclick="event.stopPropagation();openDetail('${o.id}')"></span>`;
-      } else {
-        // start / single：显示书名
-        pills+=`<span class="${cls}" style="background:${col};color:#444" title="${full} · 点击查看详情" onclick="event.stopPropagation();openDetail('${o.id}')">${disp}</span>`;
-      }
-      shown++;
-    });
-    if(c.cover.length>4)pills+=`<span class="cal-bk more">+${c.cover.length-4}</span>`;
-    html+=`<div class="cal-cell ${isToday?'today':''} ${isSel?'sel':''}" onclick="selectDay('${c.key}')" style="animation-delay:${Math.floor((c.d+lead)/7)*40+(c.d+lead)%7*30}ms">
+    html+=`<div class="cal-cell ${isToday?'today':''} ${isSel?'sel':''}" onclick="selectDay('${c.key}')">
       <span class="cal-dnum">${c.d}</span>
-      <div class="cal-books">${pills}</div>
     </div>`;
   });
-  document.getElementById('calGrid').innerHTML=`<div class="cal-board">${html}</div>`;
 
-  // 月度小结(聚焦阅读区间,移除打卡/计划/时长统计)
+  /* Bars overlay：每本书一个/多个连续段，按全局行号定位，
+     left/width 用 7列百分比确保跨日连贯 */
+  const TOP_OFFSET=26;       // 日期数字下方
+  const BAR_H=18;            // 单条 bar 高度
+  const BAR_GAP=2;           // bar 间距
+  const maxRow=Math.max(0,...[...bookGlobalRow.values()]);
+
+  let barsHtml=`<div class="cal-bars-overlay" style="position:absolute;left:0;right:0;top:${TOP_OFFSET}px;pointer-events:none">`;
+  bookSegments.forEach((segs,id)=>{
+    const b=bookMap[id];if(!b)return;
+    const row=bookGlobalRow.get(id)||0;
+    const bg=bookColor(id);
+    const accent=accentColor(id);
+    const full=esc(b.title);
+    const disp=esc(b.title.length>5?b.title.slice(0,5):b.title);
+    segs.forEach(seg=>{
+      const isSingle=(seg.startDay===seg.endDay);
+      const left=(seg.startDay-1)/7*100;
+      const width=(seg.endDay-seg.startDay+1)/7*100;
+      const top=row*(BAR_H+BAR_GAP);
+      const bookTitle=full;
+      if(isSingle){
+        barsHtml+=`<div class="cal-bk-b single" style="position:absolute;left:calc(${left}% + 1px);width:calc(${width}% - 2px);top:${top}px;height:${BAR_H}px;background:${bg};border-left:4px solid ${accent};pointer-events:auto" title="${bookTitle}" onclick="event.stopPropagation();openDetail('${id}')">${disp}</div>`;
+      } else {
+        barsHtml+=`<div class="cal-bk-b multi" style="position:absolute;left:calc(${left}% + 1px);width:calc(${width}% - 2px);top:${top}px;height:${BAR_H}px;background:${bg};border-left:4px solid ${accent};pointer-events:auto" title="${bookTitle}" onclick="event.stopPropagation();openDetail('${id}')">${disp}</div>`;
+      }
+    });
+  });
+  barsHtml+=`</div>`;
+
+  /* 调整单元格高度以容纳 bar overlay：每个 cell 高度 = 顶部日期区 + (maxRow+1) * (BAR_H+BAR_GAP) */
+  const cellH=TOP_OFFSET+(maxRow+1)*(BAR_H+BAR_GAP)+4;
+  const boardH=`<div class="cal-board" style="--cell-h:${cellH}px">${html}${barsHtml}</div>`;
+  document.getElementById('calGrid').innerHTML=boardH;
+
+  // 月度小结
   document.getElementById('calMonthSum').innerHTML=
     monthBooks.size>0
       ?`<span>涉及 <b>${monthBooks.size}</b> 本</span><span>阅读区间覆盖 <b>${coveredDays}</b> 天</span>`
       :`<span style="color:var(--text-3)">🌱 还没有阅读记录 · 添加书籍并「记一笔」开始追踪</span>`;
 
-  // 图例:每本书一种固定颜色(本月出现过的书),按起始日期排序与 pill 顺序一致
-  const lgIds=[...monthBooks.keys()].sort((a,b)=>{const sa=bookMap[a]?bookMap[a].startTime:0;const sb=bookMap[b]?bookMap[b].startTime:0;return sa-sb||a.localeCompare(b)});
-  const lg=lgIds.map(id=>{const b=bookMap[id];return `<div class="lg"><i class="sw" style="background:${bookColor(id)}"></i><span>${esc(b.title)}</span></div>`}).join('');
+  // 图例：按全局行号顺序显示，让图例顺序与日历中的视觉顺序一致
+  const lgIds=[...bookGlobalRow.keys()].sort((a,b)=>bookGlobalRow.get(a)-bookGlobalRow.get(b));
+  const lg=lgIds.map(id=>{const b=bookMap[id];return `<div class="lg"><i class="sw" style="background:${bookColor(id)};border-left:4px solid ${accentColor(id)}"></i><span>${esc(b.title)}</span></div>`}).join('');
   document.getElementById('calLegend').innerHTML=lg;
-
-  // 注：日视图改为点击日期后弹窗(见 selectDay→renderDayDetail)，不再在渲染日历时内联展开
 }
 function selectDay(key){selDay=(selDay===key)?null:key;renderDayDetail();renderCal()}
 function renderDayDetail(){
   if(!selDay){closeMask('dayViewMask');return}
   const bookMap={};getBooks().forEach(b=>bookMap[b.id]=b);
   const t=today();
-  // ① 落在阅读区间/跨度内的书(与日历网格一致,含完结后重读日)
-  let spanBooks=selDay<=t?bookSpans().filter(s=>{
+  // 当天在 bookday 有记录的书 + 落在阅读区间的书（去重）
+  const bd=getBookDay();const bdDay=bd[selDay]||{};
+  const tsMap=getBookTimes();const tsDay=tsMap[selDay]||{};
+  const spanBooks=selDay<=t?bookSpans().filter(s=>{
     const inSpan=s.days?s.days.has(selDay):(selDay>=s.start&&selDay<=s.end);
     return inSpan || (s.extra&&s.extra.has(selDay));
   }):[];
-  // ② 补全：当天在 bookday 有记录、但未被跨度覆盖的书(如只记了一笔、未填起止日期),保证日视图不漏书
-  const bd=getBookDay();const bdDay=bd[selDay]||{};
-  const have=new Set(spanBooks.map(s=>s.id));
-  Object.keys(bdDay).forEach(id=>{ if(!have.has(id)&&bookMap[id]) spanBooks.push({id,start:selDay,days:new Set([selDay]),end:selDay}); });
-  // 与日历网格 pill 保持一致的全局排序(起始日期升序)
-  spanBooks.sort((a,b)=>{const sa=bookMap[a.id]?bookMap[a.id].startTime:0;const sb=bookMap[b.id]?bookMap[b.id].startTime:0;return sa-sb||a.id.localeCompare(b.id)});
+  const idSet=new Set();
+  Object.keys(bdDay).forEach(id=>idSet.add(id));
+  spanBooks.forEach(s=>idSet.add(s.id));
+  const books=[...idSet].map(id=>bookMap[id]).filter(Boolean);
+
   const [y,m,d]=selDay.split('-');
-  document.getElementById('dvTitle').innerHTML=`${+m} 月 ${+d} 日 <span class="muted" style="font-size:12px;font-weight:400">${spanBooks.length?(' · 共 '+spanBooks.length+' 本'):''}</span>`;
-  const rows=spanBooks.map(s=>{
-    const b=bookMap[s.id], col=bookColor(s.id);
-    const days=s.days?s.days.size:(dayDiff(s.start,s.end)+1);
-    // 已完结的书归属到完结日,标签改为「读完于」,避免「在读期间」误导
-    const dlabel=s.days?('实际阅读 '+days+' 天')
-      :(b.status==='finished'&&b.finishTime?('读完于 '+fmtDate(b.finishTime))
-      :('在读期间 · 累计 '+days+' 天'));
-    return `<div class="day-book" onclick="openDetail('${s.id}')">
-      <i class="sw" style="background:${col}"></i>
-      <span class="db-t">${esc(b.title)}</span>
-      <span class="db-d">${dlabel}</span>
+  document.getElementById('dvTitle').innerHTML=
+    `${+m}月${+d}日 · <span class="muted" style="font-size:12px;font-weight:400">${books.length?('共 '+books.length+' 本'):''}</span>`;
+
+  if(!books.length){
+    document.getElementById('dvBody').innerHTML=
+      '<div style="padding:20px 8px;text-align:center"><div style="font-size:28px;margin-bottom:6px">📖</div><div class="muted" style="font-size:13px">这一天还没有阅读记录</div><div class="muted" style="font-size:11.5px;margin-top:4px">选一本书，记下今天的阅读</div></div>';
+    openMask('dayViewMask');return;
+  }
+
+  /* ═══ 纵向时间轴（v19 核心）═══
+     左侧 07:00-24:00 时间刻度，右侧每本书按真实【记一笔/今日已读】时间戳定位。 */
+  const HOUR_H=44;   // 每小时占 44px
+  const DAY_START=7; // 显示起点 07:00
+  const DAY_END=24;  // 显示终点
+  const totalH=(DAY_END-DAY_START)*HOUR_H;
+
+  // 收集所有时间戳事件
+  const events=[];
+  books.forEach(b=>{
+    const times=(tsDay[b.id]||[]).slice().sort((a,b)=>a-b);
+    times.forEach(ts=>{
+      const dt=new Date(ts);
+      const hm=dt.getHours()*60+dt.getMinutes();
+      events.push({hm,bookId:b.id,ts});
+    });
+  });
+  events.sort((a,b)=>a.hm-b.hm||a.ts-b.ts);
+
+  // 时间刻度 HTML
+  let scaleHtml='<div class="dv-scale">';
+  for(let h=DAY_START;h<=DAY_END;h++){
+    scaleHtml+=`<div class="dv-hour" style="height:${HOUR_H}px"><span>${String(h).padStart(2,'0')}:00</span></div>`;
+  }
+  scaleHtml+='</div>';
+
+  // 事件面板
+  let panelHtml=`<div class="dv-panel" style="height:${totalH}px">`;
+  for(let h=DAY_START;h<DAY_END;h++){
+    panelHtml+=`<div class="dv-slot" style="top:${(h-DAY_START)*HOUR_H}px"></div>`;
+  }
+  events.forEach(ev=>{
+    const b=bookMap[ev.bookId];if(!b)return;
+    const bg=bookColor(ev.bookId), accent=accentColor(ev.bookId);
+    const top=Math.max(0,(ev.hm-DAY_START*60)/60*HOUR_H-12);
+    const dt=new Date(ev.ts);
+    const hhmm=String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
+    panelHtml+=`<div class="dv-event" style="top:${top}px;background:${bg};border-left:4px solid ${accent}" onclick="openDetail('${ev.bookId}')">
+      <span class="dv-time">${hhmm}</span>
+      <span class="dv-title">${esc(b.title)}</span>
     </div>`;
   });
-  // 补记:忘了记的日子可以在弹窗内直接补
+  panelHtml+=`</div>`;
+
+  // 补记区
   const allBooks=getBooks();
   const backlog=(selDay<=t&&allBooks.length)?`
-    <div class="row" style="margin-top:12px;gap:8px">
-      <select id="dayLogBook" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:16px;background:var(--surface);font-family:inherit">
+    <div class="row" style="margin-top:14px;gap:8px">
+      <select id="dayLogBook" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:14px;background:var(--surface);font-family:inherit">
         ${allBooks.map(b=>`<option value="${b.id}">${esc(b.title)}</option>`).join('')}
       </select>
-      <button class="btn btn-ghost btn-sm" onclick="dayBacklog()">补记这天读过</button>
+      <button class="btn btn-ghost btn-sm" onclick="dayBacklog()">补记</button>
     </div>`:'';
+
   document.getElementById('dvBody').innerHTML=
-    (rows.length?rows.join(''):'<div style="padding:20px 8px;text-align:center"><div style="font-size:28px;margin-bottom:6px">📖</div><div class="muted" style="font-size:13px">这一天还没有阅读记录</div><div class="muted" style="font-size:11.5px;margin-top:4px">选一本书，记下今天的阅读</div></div>')
-    +backlog;
-  openMask('dayViewMask');   // 以弹窗形式展示当日全部书籍(含被日历折叠的 +N 本)
+    `<div class="dv-axis">${scaleHtml}${panelHtml}</div>${backlog}`;
+  openMask('dayViewMask');
 }
 function dayBacklog(){
   const sel=document.getElementById('dayLogBook');
@@ -1876,7 +1980,7 @@ function changeGoal(delta){
   renderMe();renderStats();
 }
 function exportData(){
-  const data={books:getBooks(),checkins:getCheckins(),settings:getSettings(),daily:getDaily(),bookday:getBookDay(),plans:getPlans(),excerpts:getExcerpts(),exportAt:new Date().toISOString()};
+  const data={books:getBooks(),checkins:getCheckins(),settings:getSettings(),daily:getDaily(),bookday:getBookDay(),booktimes:getBookTimes(),plans:getPlans(),excerpts:getExcerpts(),exportAt:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='追文记备份_'+today()+'.json';a.click();toast('已导出备份');
@@ -1889,7 +1993,8 @@ function importData(e){
       const d=JSON.parse(r.result);
       if(d.books)setBooks(d.books);if(d.checkins)save(KEY_CHECKIN,d.checkins);
       if(d.settings)setSettings(d.settings);if(d.daily)save(KEY_DAILY,d.daily);
-      if(d.bookday)save(KEY_BOOKDAY,d.bookday);if(d.plans)setPlans(d.plans);if(d.excerpts)setExcerpts(d.excerpts);
+      if(d.bookday)save(KEY_BOOKDAY,d.bookday);if(d.booktimes)save(KEY_BOOKTIMES,d.booktimes);
+      if(d.plans)setPlans(d.plans);if(d.excerpts)setExcerpts(d.excerpts);
       toast('导入成功');renderAll();
     }catch(err){toast('文件格式不对')}
   };
@@ -1897,7 +2002,7 @@ function importData(e){
 }
 function clearAll(){
   if(!confirm('确定清空全部数据?书籍、笔记、打卡记录都会删除,不可恢复!建议先导出备份。'))return;
-  [KEY_BOOKS,KEY_CHECKIN,KEY_SET,KEY_DAILY,KEY_BOOKDAY,KEY_PLANS,KEY_EXCERPTS].forEach(k=>__rawDel(k));
+  [KEY_BOOKS,KEY_CHECKIN,KEY_SET,KEY_DAILY,KEY_BOOKDAY,KEY_PLANS,KEY_EXCERPTS,KEY_BOOKTIMES].forEach(k=>__rawDel(k));
   __rawDel('zwj_seeded');__rawDel('zwj_caldemo');
   toast('已清空,正在重载示例数据');location.reload();
 }
