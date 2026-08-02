@@ -1599,6 +1599,8 @@ function ensureBookColors(){
   if(changed)setColorMap(map);return map;
 }
 let _colorMapCache=null;
+/* v19 色板变更：清除旧色板缓存，强制用新色板重新分配 */
+try{const _old=JSON.parse(localStorage.getItem(BOOK_COLOR_KEY)||'{}');const _v18colors=['#FFB088','#FFB8C8','#A8D5A8','#B8D5F0','#C8B0E5','#FFE08A','#88D5CC','#FFC8A0','#F5A8C8','#A8B5E5','#C8E58A','#FFA8A8','#88C5E5','#E5A8D5','#B8A8E5','#A8C5C5','#E8D5C4','#D5E8DC','#E0D5E8','#D5E2E8','#F0D5D5','#D5E8D8','#EDE0C5','#DCE5F0','#EBDFD5','#C5E5D5','#F0E2D0','#D0DFE8','#F2DBDB','#BFE0CC','#EADAB8','#C5DAE8','#F0E6D8','#F8DDE4','#EDE4F2','#DEF0E6','#FAE6DD','#E4EEF2','#F0EEDD','#FDF0E4','#E8EAF0','#E0F0E8','#F9E0E4','#EAEED8','#F2E4EC','#E0E8F0','#F5EDE4','#E8F0EE'];const _needsReset=Object.values(_old).some(c=>_v18colors.includes(c));if(_needsReset){localStorage.removeItem(BOOK_COLOR_KEY);}}catch(e){}
 function bookColor(id){
   if(_colorMapCache&&_colorMapCache[id])return _colorMapCache[id];
   _colorMapCache=ensureBookColors();return _colorMapCache[id]||BOOK_BASE_COLORS[0];
@@ -1650,6 +1652,7 @@ function bookSpans(){
 /* 两个日期(YYYY-MM-DD)相差的整天数,用于阅读区间「累计天数」标注(含首尾) */
 function dayDiff(a,b){const da=new Date(a+'T00:00:00'),db=new Date(b+'T00:00:00');return Math.round((db-da)/86400000)}
 function renderCal(){
+ try{
   const t=today();
   const bookMap={};getBooks().forEach(b=>bookMap[b.id]=b);
   document.getElementById('calYM').textContent=calY+' 年 '+(calM+1)+' 月';
@@ -1662,17 +1665,33 @@ function renderCal(){
   for(let i=0;i<lead;i++)cells.push(null);        // 上月补位(淡显)
   const spans=bookSpans();   // 每本书 [开始,完结] 区间(用于整段高亮)
 
-  /* ═══ 预计算：每本书在本月的所有出现日期 ═══ */
+  /* ═══ 预计算：每本书在本月的所有出现日期 ═══
+     同时处理两种书：①进行中的书(sp.days=Set of 实际阅读日) ②已完结的书(sp.days=null, 用 start~end 区间) */
   const bookMonthDays=new Map(); // bookId → Set of day numbers (1-based)
   spans.forEach(sp=>{
-    if(!sp.days)return;
-    sp.days.forEach(key=>{
-      const [y,m,d]=key.split('-');
-      if(Number(y)===calY && Number(m)===calM){
-        if(!bookMonthDays.has(sp.id))bookMonthDays.set(sp.id,new Set());
-        bookMonthDays.get(sp.id).add(Number(d));
+    const daySet=new Set();
+    if(sp.days){
+      // 进行中的书：用实际阅读记录的天
+      sp.days.forEach(key=>{
+        const [y,m,d]=key.split('-');
+        if(Number(y)===calY && Number(m)===calM)daySet.add(Number(d));
+      });
+    } else {
+      // 已完结的书：用 start~end 区间遍历本月内的每一天
+      const [sy,sm,sd]=sp.start.split('-').map(Number);
+      const [ey,em,ed]=sp.end.split('-').map(Number);
+      const startDt=new Date(sy,sm-1,sd);
+      const endDt=new Date(ey,em-1,ed);
+      for(let dt=new Date(startDt);dt<=endDt;dt.setDate(dt.getDate()+1)){
+        if(dt.getFullYear()===calY && dt.getMonth()===calM)daySet.add(dt.getDate());
       }
-    });
+      // 完结后重读日
+      if(sp.extra)sp.extra.forEach(key=>{
+        const [y,m,d]=key.split('-');
+        if(Number(y)===calY && Number(m)===calM)daySet.add(Number(d));
+      });
+    }
+    if(daySet.size>0)bookMonthDays.set(sp.id,daySet);
   });
 
   /* ═══ 全局行索引（v19 关键修复） ═══
@@ -1789,6 +1808,10 @@ function renderCal(){
   const lgIds=[...bookGlobalRow.keys()].sort((a,b)=>bookGlobalRow.get(a)-bookGlobalRow.get(b));
   const lg=lgIds.map(id=>{const b=bookMap[id];return `<div class="lg"><i class="sw" style="background:${bookColor(id)};border-left:4px solid ${accentColor(id)}"></i><span>${esc(b.title)}</span></div>`}).join('');
   document.getElementById('calLegend').innerHTML=lg;
+ }catch(err){
+  console.error('renderCal error:',err);
+  document.getElementById('calGrid').innerHTML='<div style="padding:20px;color:#c00;font-size:12px">日历渲染出错: '+String(err.message||err)+'</div>';
+ }
 }
 function selectDay(key){selDay=(selDay===key)?null:key;renderDayDetail();renderCal()}
 function renderDayDetail(){
