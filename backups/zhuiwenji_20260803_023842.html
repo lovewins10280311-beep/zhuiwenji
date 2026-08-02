@@ -440,7 +440,7 @@
 
   /* ============ 日历月视图：无边框简洁风格 ============ */
   /* 7 列等宽网格,无方块/卡片/表格线;每本书以颜色区分 */
-  .cal-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin-top:12px;position:relative;overflow:hidden}
+  .cal-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin-top:12px;position:relative}
   .cal-wd{text-align:center;font-size:11px;font-weight:800;color:var(--text-3);padding:8px 0 10px}
   /* 单元格：高度由 JS 根据本月最多 bar 行数动态设置(--cell-h);仅含日期数字,bars 在独立 overlay */
   .cal-cell{min-height:var(--cell-h,82px);min-width:0;padding:7px 0 5px;display:flex;flex-direction:column;
@@ -459,11 +459,11 @@
   /* ═══ Bars Overlay（v19 核心）：iPhone 日历多日事件风格 ═══
      独立 absolute 定位层，每本书一根/多根横跨多日的 bar，按全局行号定位。
      浅色背景 + 左侧 4px 深色"主题色块" + 深色文字，模拟 Apple Calendar 多日事件条。 */
-  .cal-bars-overlay{position:absolute;left:0;right:0;top:26px;pointer-events:none;overflow:hidden}
+  .cal-bars-overlay{position:absolute;left:0;right:0;top:26px;pointer-events:none}
   .cal-bk-b{font-size:10px;line-height:1.2;color:#3a3a3a;font-weight:600;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
     transition:opacity .12s,box-shadow .12s;border-radius:5px;display:flex;align-items:center;padding:0 6px;
-    box-sizing:border-box;max-width:100%}
+    box-sizing:border-box}
   .cal-bk-b:hover{opacity:.85;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.12)}
   .cal-bk-b:active{opacity:.7}
   /* 独立一日：完整圆角 */
@@ -1701,17 +1701,7 @@ function renderCal(){
     while(i<sorted.length){
       let j=i+1;
       while(j<sorted.length && sorted[j]===sorted[j-1]+1)j++;
-      // 关键修复：把连续段按周边界切分成多个"一周内子段"，每段列号必落在 0-6。
-      // 否则跨周/月末的段会被算成全局列号(可到 36)，left 百分比直接溢出屏幕。
-      const segEnd=sorted[j-1];
-      let segStart=sorted[i];
-      while(segStart<=segEnd){
-        const startCol=(lead+segStart-1)%7;
-        const weekEndDay=segStart+(6-startCol); // 本周最后一天(列=6)
-        const thisEnd=Math.min(segEnd,weekEndDay);
-        segs.push({startDay:segStart,endDay:thisEnd});
-        segStart=thisEnd+1;
-      }
+      segs.push({startDay:sorted[i],endDay:sorted[j-1]});
       i=j;
     }
     bookSegments.set(id,segs);
@@ -1747,41 +1737,35 @@ function renderCal(){
   });
 
   /* Bars overlay：每本书一个/多个连续段，按全局行号定位。
-     关键修复（v21）：
-       - 列号必须取模 (lead+day-1)%7，落在 0-6，否则月末/跨周段的 left 百分比会溢出屏幕
-       - 纵向 top = 周行偏移(weekRow*cellH) + 书序行偏移(bookRow*(BAR_H+BAR_GAP))
-         这样同一本书跨多周时，每段显示在对应周的正确书序行，不再全部堆在顶部
-     列号基于网格列(0-6)，不是全局列。 */
+     关键：bar 的 left/width 基于网格列号(lead偏移+天-1)，不是天数。 */
   const TOP_OFFSET=26;
   const BAR_H=18;
   const BAR_GAP=2;
   const maxRow=Math.max(0,...[...bookGlobalRow.values()]);
-  // cellH 提前计算：单周行高度 = 日期区 + 书序行 bar 区；整个日历由 grid 自动重复 6 周行
-  const cellH=TOP_OFFSET+(maxRow+1)*(BAR_H+BAR_GAP)+4;
 
   let barsHtml=`<div class="cal-bars-overlay" style="position:absolute;left:0;right:0;top:${TOP_OFFSET}px;pointer-events:none">`;
   bookSegments.forEach((segs,id)=>{
     const b=bookMap[id];if(!b)return;
-    const bookRow=bookGlobalRow.get(id)||0;
+    const row=bookGlobalRow.get(id)||0;
     const accent=accentColor(id);
     const bg=hexA(accent,0.65);   // bar 底色 = 主题色 65% 透明度
     const full=esc(b.title);
     const disp=esc(b.title.length>5?b.title.slice(0,5):b.title);
     segs.forEach(seg=>{
-      // 取模列号(0-6)，保证 left/width 百分比永远落在 0-100%
-      const colStart=(lead+seg.startDay-1)%7;
-      const colEnd=(lead+seg.endDay-1)%7;
-      const colSpan=colEnd-colStart+1;
-      const weekRow=Math.floor((lead+seg.startDay-1)/7); // 第几周(0-5)
-      const left=colStart/7*100;          // 占总宽百分比(0-85.7%)
-      const width=colSpan/7*100;          // 0-100%
-      // top = 周偏移 + 书序行偏移(相对 overlay 起点,overlay 已在 TOP_OFFSET)
-      const top=weekRow*cellH + bookRow*(BAR_H+BAR_GAP);
-      barsHtml+=`<div class="cal-bk-b ${seg.startDay===seg.endDay?'single':'multi'}" style="position:absolute;left:calc(${left}% + 1px);width:calc(${width}% - 2px);top:${top}px;height:${BAR_H}px;background:${bg};border-left:3px solid ${accent};pointer-events:auto;overflow:hidden" title="${full}" onclick="event.stopPropagation();openDetail('${id}')">${disp}</div>`;
+      // bar 的网格列范围 = lead偏移 + 天号 - 1
+      const startCol=lead+seg.startDay-1;
+      const endCol=lead+seg.endDay-1;
+      const colSpan=endCol-startCol+1;
+      const left=startCol/7*100;          // 占总宽百分比
+      const width=colSpan/7*100;
+      const top=row*(BAR_H+BAR_GAP);
+      barsHtml+=`<div class="cal-bk-b ${seg.startDay===seg.endDay?'single':'multi'}" style="position:absolute;left:calc(${left}% + 1px);width:calc(${width}% - 2px);top:${top}px;height:${BAR_H}px;background:${bg};border-left:3px solid ${accent};pointer-events:auto" title="${full}" onclick="event.stopPropagation();openDetail('${id}')">${disp}</div>`;
     });
   });
   barsHtml+=`</div>`;
 
+  /* 调整单元格高度：顶部日期区 + bar 区域，bar 在单元格内部 overlay 层 */
+  const cellH=TOP_OFFSET+(maxRow+1)*(BAR_H+BAR_GAP)+4;
   const boardH=`<div class="cal-board" style="--cell-h:${cellH}px;position:relative">${html}${barsHtml}</div>`;
   document.getElementById('calGrid').innerHTML=boardH;
 
