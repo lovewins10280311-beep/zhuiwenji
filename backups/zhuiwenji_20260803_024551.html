@@ -440,9 +440,7 @@
 
   /* ============ 日历月视图：无边框简洁风格 ============ */
   /* 7 列等宽网格,无方块/卡片/表格线;每本书以颜色区分 */
-  .cal-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin-top:12px;position:relative;overflow:hidden;
-    /* debug: 蓝色边框确认 board 尺寸，确认后删除 */
-    outline:2px solid rgba(0,0,255,.4)}
+  .cal-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin-top:12px;position:relative;overflow:hidden}
   .cal-wd{text-align:center;font-size:11px;font-weight:800;color:var(--text-3);padding:8px 0 10px}
   /* 单元格：高度由 JS 根据本月最多 bar 行数动态设置(--cell-h);仅含日期数字,bars 在独立 overlay */
   .cal-cell{min-height:var(--cell-h,82px);min-width:0;padding:7px 0 5px;display:flex;flex-direction:column;
@@ -461,15 +459,11 @@
   /* ═══ Bars Overlay（v19 核心）：iPhone 日历多日事件风格 ═══
      独立 absolute 定位层，每本书一根/多根横跨多日的 bar，按全局行号定位。
      浅色背景 + 左侧 4px 深色"主题色块" + 深色文字，模拟 Apple Calendar 多日事件条。 */
-  .cal-bars-overlay{position:absolute;left:0;right:0;top:26px;pointer-events:none;overflow:hidden;
-    /* debug: 红色边框确认 overlay 存在及尺寸，确认后删除 */
-    outline:2px dashed rgba(255,0,0,.4)}
+  .cal-bars-overlay{position:absolute;left:0;right:0;top:26px;pointer-events:none;overflow:hidden}
   .cal-bk-b{font-size:10px;line-height:1.2;color:#3a3a3a;font-weight:600;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
     transition:opacity .12s,box-shadow .12s;border-radius:5px;display:flex;align-items:center;padding:0 6px;
-    box-sizing:border-box;max-width:100%;
-    /* debug: 亮色底确认 bar 存在，确认后删除 */
-    background:rgba(255,0,0,.3)!important;border-left:3px solid red!important}
+    box-sizing:border-box;max-width:100%}
   .cal-bk-b:hover{opacity:.85;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.12)}
   .cal-bk-b:active{opacity:.7}
   /* 独立一日：完整圆角 */
