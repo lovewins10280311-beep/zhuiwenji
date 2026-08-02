@@ -403,8 +403,11 @@
   .mini-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
   .mini-cell{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:8.5px;color:var(--text-3);border-radius:6px}
   .mini-cell.out{opacity:0}
-  .mini-cell.chk{background:var(--accent);color:#fff;font-weight:800}
-  .mini-cell.read{box-shadow:inset 0 0 0 1.5px var(--accent-line);color:var(--text-2)}
+  /* 热力图级别：按当天阅读本书数分4级深浅，柔和紫调渐变 */
+  .mini-cell.lv1{background:rgba(124,58,237,.12);color:var(--text-2)}
+  .mini-cell.lv2{background:rgba(124,58,237,.24);color:var(--text-2)}
+  .mini-cell.lv3{background:rgba(124,58,237,.40);color:#fff;font-weight:700}
+  .mini-cell.lv4{background:rgba(124,58,237,.60);color:#fff;font-weight:800}
   .mini-cell.today{outline:2px solid var(--accent);outline-offset:-2px;font-weight:800;color:var(--text)}
 
   /* 年视图手机端：3列 + 横向滚动适配，日期对齐标题栏 */
@@ -425,7 +428,7 @@
   /* 7 列等宽网格,无方块/卡片/表格线;每本书以文字色区分,书名截断 4 字 */
   .cal-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin-top:12px}
   .cal-wd{text-align:center;font-size:11px;font-weight:800;color:var(--text-3);padding:8px 0 10px}
-  .cal-cell{min-height:72px;min-width:0;padding:7px 0 8px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+  .cal-cell{min-height:88px;min-width:0;padding:8px 0 6px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
     cursor:pointer;position:relative;border:none;background:transparent;overflow:hidden;
     transition:transform .12s cubic-bezier(.25,1,.5,1),background .15s,box-shadow .15s}
   .cal-cell:hover{background:var(--accent-weak);transform:scale(1.02);z-index:1}
@@ -439,26 +442,22 @@
   .cal-cell.sel .cal-dnum{color:var(--accent)}
   .cal-cell.sel{background:rgba(124,58,237,.14);box-shadow:inset 0 0 0 2px rgba(124,58,237,.2)}
   .cal-books{display:flex;flex-direction:column;gap:2px;align-items:stretch;overflow:visible;min-width:0;position:relative}
-  /* 连续色条：同一本书连续多日阅读时横向跨日连贯显示 */
-  .cal-bk{font-size:9.5px;line-height:1.18;padding:2px 5px;color:#fff;font-weight:700;
+  /* 连续色条：柔和粉彩色调，低饱和莫兰迪风格 */
+  .cal-bk{font-size:9px;line-height:1.2;padding:2px 5px;color:#fff;font-weight:600;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:transform .10s,filter .10s;position:relative;display:block;border-radius:6px;
-    box-shadow:0 1px 3px rgba(124,58,237,.18);min-height:15px;display:flex;align-items:center}
-  .cal-bk:hover{filter:brightness(1.08);z-index:2}
+    box-shadow:0 1px 2px rgba(0,0,0,.08);min-height:14px;display:flex;align-items:center}
+  .cal-bk:hover{filter:brightness(.92);z-index:2}
   .cal-bk:active{transform:scale(.95)}
   /* 连续色条起始日：左侧圆角 + 书名，右侧无圆角向右延伸 */
   .cal-bk.start{border-radius:6px 0 0 6px;padding-left:4px;z-index:1;margin-right:-1px}
   /* 连续色条中间日：纯色条延伸，无文字，视觉上与前后连贯；负边距消除单元格间隙 */
-  .cal-bk.mid{border-radius:0;padding:2px 0;min-height:15px;box-shadow:none;cursor:pointer;z-index:1;margin-left:-1px;margin-right:-1px}
-  /* 连续色条结束日：右侧圆角，向左延伸 */
+  .cal-bk.mid{border-radius:0;padding:2px 0;min-height:14px;box-shadow:none;cursor:pointer;z-index:1;margin-left:-1px;margin-right:-1px}
+  /* 连续色条结束日：右侧圆角，向左延伸，不显示书名（纯色块表示读完） */
   .cal-bk.end{border-radius:0 6px 6px 0;padding-right:4px;z-index:1;margin-left:-1px}
   /* 单独一日（不连续）：独立小药丸 */
-  .cal-bk.single{border-radius:6px;box-shadow:0 1px 3px rgba(124,58,237,.18)}
+  .cal-bk.single{border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
   .cal-bk.more{background:var(--line-2);color:var(--text-3);text-align:center;font-weight:500;box-shadow:none;cursor:default;border-radius:6px}
   .cal-bk.more:hover,.cal-bk.more:active{transform:none;filter:none;box-shadow:none}
-  /* 阅读强度:当天有越多书,背景越深 */
-  .cal-cell.intensity-1{background:rgba(124,58,237,.04)}
-  .cal-cell.intensity-2{background:rgba(124,58,237,.08)}
-  .cal-cell.intensity-3plus{background:rgba(124,58,237,.12)}
 
   /* ============ 摘抄模块 ============ */
   .excerpt-item{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
@@ -1502,10 +1501,17 @@ const BOOK_COLOR_KEY='zwj_colors';
 function getColorMap(){try{return JSON.parse(localStorage.getItem(BOOK_COLOR_KEY))||{}}catch(e){return {}}}
 function setColorMap(m){try{localStorage.setItem(BOOK_COLOR_KEY,JSON.stringify(m))}catch(e){}}
 
-/* 精选基础色板：黄金角色相均布 + 明度/饱和多级扰动，最大区分度；中明度带，白字可读且浅/深背景清晰 */
-const BOOK_BASE_COLORS=['#d02525','#27ec61','#a552e0','#ebd21e','#63cee3','#e11483','#61dc38','#4b43ef',
-  '#da682f','#56f0b7','#c225d0','#c3ec27','#5299e0','#eb1e48','#63e36e','#6114e1','#dca538','#43efe8',
-  '#da2faf','#9cf056','#2541d0','#ec4027','#52e08e','#b01eeb'];
+/* 和谐粉彩色板：参考 omynote 阅读日历风格，低饱和(28-42%)、中高明度(56-68%)，
+   莫兰迪/粉彩色调，视觉统一不跳跃，白字可读，浅色背景清晰。
+   24 色覆盖全色相环，相邻色保持足够区分度。 */
+const BOOK_BASE_COLORS=[
+  '#c4a882','#8eb8a0','#b89db5','#9ab8c4',   // 暖沙/鼠尾草/藕荷/雾蓝
+  '#d4a59b','#9ec4a8','#c4b08e','#a0b8ce',   // 干玫瑰/薄荷绿/奶茶/天青
+  '#bfa99e','#88c4a0','#d0b49a','#98b4c8',   // 燕麦/翠竹/杏色/钴蓝灰
+  '#c99a9e','#84c29c','#c8aa90','#94bac8',   // 玫瑰灰/春绿/琥珀/湖蓝
+  '#c4b0a4','#80c098','#ccae94','#8cb8c4',   // 亚麻/草绿/蜜糖/蔚蓝
+  '#d0a8a0','#78be98','#d4ac98','#88bcc4'    // 浅珊瑚/嫩叶/桃色/冰蓝
+];
 
 /* HSL→HEX */
 function hslToHex(h,s,l){s/=100;l/=100;const k=n=>(n+h/30)%12;const a=s*Math.min(l,1-l);
@@ -1513,15 +1519,16 @@ function hslToHex(h,s,l){s/=100;l/=100;const k=n=>(n+h/30)%12;const a=s*Math.min
   const to=x=>Math.round(255*x).toString(16).padStart(2,'0');return '#'+to(f(0))+to(f(8))+to(f(4))}
 /* 从「已用颜色集合」挑下一个唯一色：精选板优先；超出后用黄金角 HSL 单调生成。
    _genSeq 全局单调，保证每次生成的(色相/饱和/明度)三元组都不同 → 必然唯一、绝不重复；
-   黄金角色相使相邻书颜色差异最大化。明度控制在 48-64% 中带，浅/深背景均清晰可读。 */
+   黄金角色相使相邻书颜色差异最大化。低饱和(28-42%)、中高明度(56-68%)，
+   与基础色板风格统一，莫兰迪粉彩质感，白字可读且浅背景清晰。 */
 let _genSeq=0;
 function nextBookColor(used){
   for(const c of BOOK_BASE_COLORS) if(!used.has(c)) return c;
   while(true){
     _genSeq++;
     const hue=(_genSeq*137.508)%360;            // 黄金角：相邻色相最大分离
-    const sat=58+(_genSeq%4)*9;                  // 58/67/76/85 饱和扰动
-    const light=44+((_genSeq%5)*4);              // 44/48/52/56/60 中明度带(白字/深浅背景可读)
+    const sat=28+(_genSeq%4)*4;                  // 28/32/36/40 低饱和（柔和不跳跃）
+    const light=56+((_genSeq%5)*3);              // 56/59/62/65/68 中高明度（粉彩质感）
     const c=hslToHex(hue,sat,light);
     if(!used.has(c)) return c;                    // 三元组单调→必唯一；极偶发取整碰撞则继续循环
   }
@@ -1588,6 +1595,9 @@ function renderCal(){
   const cells=[];
   for(let i=0;i<lead;i++)cells.push(null);        // 上月补位(淡显)
   const spans=bookSpans();   // 每本书 [开始,完结] 区间(用于整段高亮)
+  /* 预计算每本书在本月的阅读天数（用于排序：跨度长的书置顶形成跨日连贯色条） */
+  const bookSpanLen=new Map(); // bookId → 本月出现天数
+  spans.forEach(sp=>{ const d=sp.days?sp.days.size:(dayDiff(sp.start,sp.end)+1); bookSpanLen.set(sp.id,d) });
   for(let d=1;d<=daysIn;d++){
     const key=dstr(calY,calM,d);
     // 当天是否属于某本书的阅读区间:有结束日的按区间判断;进行中的只认实际阅读记录天
@@ -1602,11 +1612,12 @@ function renderCal(){
       }
     });
     if(cover.length){
-      // 按起始阅读日期升序排列(先开始读的靠左),确保同一天多本书 pill 顺序在所有日期上全局一致
+      /* 排序：连续阅读跨度越长的书越靠上置顶，确保跨日连续色条在同一行对齐不被截断。
+         同跨度按起始日期升序（先开始读的靠上），保证全局顺序一致 */
       cover.sort((a,b)=>{
-        const sa=bookMap[a.id]?bookMap[a.id].startTime:0;
-        const sb=bookMap[b.id]?bookMap[b.id].startTime:0;
-        return sa-sb || a.id.localeCompare(b.id);
+        const aSpan=bookSpanLen.get(a.id)||0;
+        const bSpan=bookSpanLen.get(b.id)||0;
+        return bSpan-aSpan || (bookMap[a.id]?bookMap[a.id].startTime:0)-(bookMap[b.id]?bookMap[b.id].startTime:0) || a.id.localeCompare(b.id);
       });
       coveredDays++;
     }
@@ -1641,24 +1652,23 @@ function renderCal(){
     const isToday=c.key===t, isSel=c.key===selDay;
     let pills='', shown=0;
     c.cover.forEach(o=>{
-      if(shown>=3)return;
+      if(shown>=4)return;
       const b=bookMap[o.id], col=bookColor(o.id), full=esc(b.title);
       const disp=esc(b.title.length>4?b.title.slice(0,4):b.title);
-      // 根据连续色条位置决定样式：连续段起始显示书名、中间纯色延伸、末尾圆角收断、单独一日独立药丸
+      // 根据连续色条位置决定样式与文字：
+      // start → 显示书名(起始日)；mid → 纯色条无文字；end → 纯色块不显示书名(表示读完)；single → 显示书名
       const pos=posMap.get(c.d+','+o.id)||'single';
       const cls='cal-bk '+pos;
-      if(pos==='mid'){
-        // 中间日：纯色条无文字，视觉连贯
-        pills+=`<span class="${cls}" style="background:${col}" title="${full} · 第 ${c.d} 日" onclick="event.stopPropagation();openDetail('${o.id}')"></span>`;
+      if(pos==='mid'||pos==='end'){
+        // 中间日/结束日：纯色条无文字，视觉连贯；结束日用纯色块表示"已读完"
+        pills+=`<span class="${cls}" style="background:${col}" title="${full} · ${pos==='end'?'读完':'第 '+c.d+' 日'}" onclick="event.stopPropagation();openDetail('${o.id}')"></span>`;
       } else {
         pills+=`<span class="${cls}" style="background:${col}" title="${full} · 点击查看详情" onclick="event.stopPropagation();openDetail('${o.id}')">${disp}</span>`;
       }
       shown++;
     });
-    if(c.cover.length>3)pills+=`<span class="cal-bk more">+${c.cover.length-3}</span>`;
-    // 阅读强度:当天书籍数决定背景深浅
-    const intensity=c.cover.length>=3?'3plus':c.cover.length===2?'2':c.cover.length===1?'1':'';
-    html+=`<div class="cal-cell ${isToday?'today':''} ${isSel?'sel':''} ${intensity?'intensity-'+intensity:''}" onclick="selectDay('${c.key}')" style="animation-delay:${Math.floor((c.d+lead)/7)*40+(c.d+lead)%7*30}ms">
+    if(c.cover.length>4)pills+=`<span class="cal-bk more">+${c.cover.length-4}</span>`;
+    html+=`<div class="cal-cell ${isToday?'today':''} ${isSel?'sel':''}" onclick="selectDay('${c.key}')" style="animation-delay:${Math.floor((c.d+lead)/7)*40+(c.d+lead)%7*30}ms">
       <span class="cal-dnum">${c.d}</span>
       <div class="cal-books">${pills}</div>
     </div>`;
@@ -1742,10 +1752,19 @@ function setCalView(v){
 }
 function renderYearView(){
   const y=calY;
-  const checkins=new Set(getCheckins());
   const bd=getBookDay();
   const t=today();
-  let months='';
+  let months='', maxBooks=1;
+  // 预扫描：找出全年单日最多阅读本书数（用于热力图深浅归一化）
+  for(let mi=0;mi<12;mi++){
+    const daysIn=new Date(y,mi+1,0).getDate();
+    for(let d=1;d<=daysIn;d++){
+      const key=dstr(y,mi,d);
+      const dayRec=bd[key];
+      if(dayRec){ const cnt=Object.keys(dayRec).length; if(cnt>maxBooks)maxBooks=cnt; }
+    }
+  }
+  if(maxBooks<1)maxBooks=1;
   for(let mi=0;mi<12;mi++){
     const daysIn=new Date(y,mi+1,0).getDate();
     const lead=(new Date(y,mi,1).getDay()+6)%7;
@@ -1753,25 +1772,30 @@ function renderYearView(){
     for(let i=0;i<lead;i++)cells+='<div class="mini-cell out"></div>';
     for(let d=1;d<=daysIn;d++){
       const key=dstr(y,mi,d);
-      const chk=checkins.has(key);
-      const read=bd[key]&&Object.keys(bd[key]).length>0;
-      const cls='mini-cell'+(chk?' chk':'')+(!chk&&read?' read':'')+(key===t?' today':'');
-      cells+=`<div class="${cls}">${d}</div>`;
+      const dayRec=bd[key];
+      const cnt=dayRec?Object.keys(dayRec).length:0;
+      /* 热力图深浅：按当天阅读本书数占最大值的比例分4级，柔和粉彩渐变 */
+      const lvl=cnt===0?0:cnt<=1?1:cnt<=2?2:cnt<=3?3:4;
+      const cls='mini-cell'+(lvl?' lv'+lvl:'')+(key===t?' today':'');
+      cells+=`<div class="${cls}" title="${key}${cnt?' · '+cnt+'本书':''}">${d}</div>`;
     }
     months+=`<div class="mini-month"><div class="mini-h" onclick="gotoMonth(${mi})">${mi+1} 月</div>
       <div class="mini-w"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
       <div class="mini-g">${cells}</div></div>`;
   }
-  const yChk=getCheckins().filter(x=>x.startsWith(y+'-')).length;
-  const yRead=Object.keys(bd).filter(k=>k.startsWith(y+'-')).length;
+  /* 统计：基于实际阅读记录（bookday），不再依赖打卡 */
+  let yReadDays=0,yReadBooks=0;
+  Object.keys(bd).filter(k=>k.startsWith(y+'-')).forEach(k=>{ yReadDays++; yReadBooks+=Object.keys(bd[k]).length; });
   document.getElementById('yearView').innerHTML=
     `<div class="cal-head"><button class="cal-nav" onclick="calY--;renderYearView()">‹</button>
        <span class="cal-ym">${y} 年 · 全年阅读总览</span>
        <button class="cal-nav" onclick="calY++;renderYearView()">›</button></div>
-     <div class="cal-month-sum"><span>全年打卡 <b>${yChk}</b> 天</span><span>有阅读记录 <b>${yRead}</b> 天</span></div>
+     <div class="cal-month-sum"><span>有阅读记录 <b>${yReadDays}</b> 天</span><span>累计阅读 <b>${yReadBooks}</b> 本次</span></div>
      <div class="cal-legend">
-       <div class="lg"><i class="sw" style="background:var(--accent)"></i><span>打卡日</span></div>
-       <div class="lg"><i class="sw" style="background:transparent;box-shadow:inset 0 0 0 2px var(--accent-line)"></i><span>有阅读记录</span></div>
+       <div class="lg"><i class="sw" style="background:rgba(124,58,237,.12)"></i><span>较少</span></div>
+       <div class="lg"><i class="sw" style="background:rgba(124,58,237,.28)"></i><span>适中</span></div>
+       <div class="lg"><i class="sw" style="background:rgba(124,58,237,.45)"></i><span>较多</span></div>
+       <div class="lg"><i class="sw" style="background:rgba(124,58,237,.65)"></i><span>密集</span></div>
      </div>
      <div class="year-grid">${months}</div>`;
 }
