@@ -441,17 +441,26 @@
     display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3)}
   .cal-cell.sel .cal-dnum{color:var(--accent)}
   .cal-cell.sel{background:rgba(124,58,237,.14);box-shadow:inset 0 0 0 2px rgba(124,58,237,.2)}
-  .cal-books{display:flex;flex-direction:column;gap:1.5px;overflow:hidden;min-width:0}
-  /* ═══ 书籍标签：Apple 日历风格 · 全宽淡彩标签 ═══
-     浅色底 + 深色文字 + 左侧 3px 彩色强调边（参考 omynote 阅读日历）。
-     每本书在每天渲染为统一标签，视觉连贯性来自一致颜色+排序位置。 */
-  .cal-bk{font-size:10px;line-height:1.3;padding:3px 6px;padding-left:8px;color:#333;font-weight:500;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .12s;
-    border-radius:4px;border-left:3px solid;display:block;min-height:20px;display:flex;align-items:center}
-  .cal-bk:hover{opacity:.75;z-index:2}
-  .cal-bk:active{opacity:.6}
-  /* 折叠计数 */
-  .cal-bk.more{background:transparent;color:var(--text-3);border-left:none;text-align:center;font-weight:600;padding:1px 0;cursor:default;min-height:auto;border-radius:3px}
+  .cal-books{display:flex;flex-direction:column;gap:2px;overflow:hidden;min-width:0}
+  /* ═══ 连续色条：omynote / Apple Calendar 风格 · 极淡暖彩底 + 深色文字 ═��═
+     start=连续段首日(显示书名+左圆角) mid=延伸中(纯色条无文字)
+     end=连续段末日(右圆角纯块) single=独立一日(显示书名全圆角)
+     负边距 margin ±1px 消除单元格间隙，使跨日色条视觉连贯 */
+  .cal-bk{font-size:10px;line-height:1.3;color:#444;font-weight:500;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
+    transition:opacity .12s;border-radius:4px;display:block;min-height:18px;display:flex;align-items:center}
+  .cal-bk:hover{opacity:.7;z-index:2}
+  .cal-bk:active{opacity:.5}
+  /* 连续段起始日：左圆角 + 书名 + 右侧无圆角(向右延伸) */
+  .cal-bk.start{border-radius:4px 0 0 4px;padding:2px 6px;padding-left:6px;z-index:1;margin-right:-1px}
+  /* 连续段中间日：纯色条延伸，无文字，无圆角，负边距连接前后 */
+  .cal-bk.mid{border-radius:0;padding:2px 0;min-height:18px;z-index:1;margin-left:-1px;margin-right:-1px}
+  /* 连续段结束日：右圆角纯色块，不显示书名（表示"已读完"） */
+  .cal-bk.end{border-radius:0 4px 4px 0;padding:2px 6px;padding-right:6px;z-index:1;margin-left:-1px}
+  /* 独立一日（不连续）：完整圆角标签，显示书名 */
+  .cal-bk.single{border-radius:4px;padding:2px 6px}
+  /* 折叠计数：超出4本时显示 +N */
+  .cal-bk.more{background:transparent;color:var(--text-3);text-align:center;font-weight:600;padding:1px 0;cursor:default;min-height:auto;border-radius:3px;border:none}
   .cal-bk.more:hover,.cal-bk.more:active{opacity:1}
 
   /* ============ 摘抄模块 ============ */
@@ -1496,16 +1505,29 @@ const BOOK_COLOR_KEY='zwj_colors';
 function getColorMap(){try{return JSON.parse(localStorage.getItem(BOOK_COLOR_KEY))||{}}catch(e){return {}}}
 function setColorMap(m){try{localStorage.setItem(BOOK_COLOR_KEY,JSON.stringify(m))}catch(e){}}
 
-/* ═══ 书籍颜色：Apple 日历风格 · 淡彩标签色板 ═══
-   参考 omynote / Apple Calendar 的柔和配色：
-   每个颜色 = 浅色底(用于标签背景) + 左侧强调边(稍深同色相)。
-   文字用深色(#333)在浅底上清晰可读，不再用白字。
-   16 色覆盖全色相环，低饱和高明度，视觉统一不跳跃。 */
+/* ═══ 书籍颜色：omynote / Apple Calendar 极淡暖彩标签色板（v17） ═══
+   从 omynote 阅读日历截图精确提取的配色风格：
+   每个颜色 = 极淡彩底(明度 93-97%, 饱和度 15-40%) + 暖调偏移。
+   视觉特征：像在纸上用水彩淡淡扫了一层，远看柔和统一、近看可区分。
+   文字用深色(#444)在浅底上清晰可读，不再是白字。
+   16 色覆盖全色相环，相邻色保持足够区分度。 */
 const BOOK_BASE_COLORS=[
-  '#E8D5C4','#D5E8DC','#E0D5E8','#D5E2E8',   // 暖沙/薄荷/藕荷/雾蓝
-  '#F0D5D5','#D5E8D8','#EDE0C5','#DCE5F0',   // 干玫瑰/奶绿/奶茶/天青
-  '#EBDFD5','#C5E5D5','#F0E2D0','#D0DFE8',   // 燕麦/翠竹/杏色/钴蓝灰
-  '#F2DBDB','#BFE0CC','#EADAB8','#C5DAE8',   // 玫瑰灰/春绿/琥珀/湖蓝
+  '#F0E6D8',  // 暖米色(Behave风)
+  '#F8DDE4',  // 柔玫瑰(正见风)
+  '#EDE4F2',  // 浅藤紫(伊加利亚风)
+  '#DEF0E6',  // 嫩薄荷(市民自白风)
+  '#FAE6DD',  // 蜜桃(Tornado风)
+  '#E4EEF2',  // 雾蓝灰
+  '#F0EEDD',  // 奶油
+  '#FDF0E4',  // 杏仁白
+  '#E8EAF0',  // 薰衣草灰
+  '#E0F0E8',  // 薄荷绿
+  '#F9E0E4',  // 樱花粉
+  '#EAEED8',  // 淡黄绿
+  '#F2E4EC',  // 藕荷
+  '#E0E8F0',  // 天青
+  '#F5EDE4',  // 燕麦奶
+  '#E8F0EE',  // 湖绿
 ];
 
 /* HSL→HEX */
@@ -1518,15 +1540,15 @@ function darken(hex,pct){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slic
   return '#'+f(r).toString(16).padStart(2,'0')+f(g).toString(16).padStart(2,'0')+f(b).toString(16).padStart(2,'0')}
 /* 从「已用颜色集合」挑下一个唯一色：精选板优先；超出后用黄金角 HSL 单调生成。
    _genSeq 全局单调，保证每次生成的(色相/饱和/明度)三元组都不同 → 必然唯一、绝不重复；
-   高明度(82-92%)、极低饱和(15-30%)，淡彩标签底色，深字可读。 */
+   极高明度(93-97%)、极低饱和(15-40%)，omynote 风格淡彩底，深字(#444)可读。 */
 let _genSeq=0;
 function nextBookColor(used){
   for(const c of BOOK_BASE_COLORS) if(!used.has(c)) return c;
   while(true){
     _genSeq++;
     const hue=(_genSeq*137.508)%360;            // 黄金角：相邻色相最大分离
-    const sat=15+(_genSeq%4)*5;                  // 15/20/25/30 极低饱和（淡彩底）
-    const light=82+((_genSeq%6)*2);              // 82/84/86/88/90/92 高明度（浅底深字）
+    const sat=15+(_genSeq%6)*5;                  // 15/20/25/30/35/40 极低饱和（淡彩水彩感）
+    const light=93+((_genSeq%5)*1);              // 93/94/95/96/97 极高明度（浅底深字）
     const c=hslToHex(hue,sat,light);
     if(!used.has(c)) return c;                    // 三元组单调→必唯一
   }
@@ -1635,6 +1657,26 @@ function renderCal(){
   }
   while(cells.length%7!==0 || cells.length<42)cells.push(null);  // 补齐 6 周网格
 
+  /* ═══ 连续色条检测：为每本书在当月的出现日期建立索引，标记连续段位置(start/mid/end/single) ═══ */
+  // 1) 收集每本书在本月出现的所有日期(1-based day number)
+  const bookDayMap=new Map(); // bookId → sorted array of day numbers
+  cells.forEach(c=>{if(!c)return;c.cover.forEach(o=>{if(!bookDayMap.has(o.id))bookDayMap.set(o.id,[]);bookDayMap.get(o.id).push(c.d)})});
+  bookDayMap.forEach(arr=>arr.sort((a,b)=>a-b));
+  // 2) 对每本书的日期列表拆分为连续段，生成位置查找表 (day→bookId→pos)
+  const posMap=new Map(); // "day,bookId" ��� 'start'|'mid'|'end'|'single'
+  bookDayMap.forEach((days,bid)=>{
+    let i=0;
+    while(i<days.length){
+      let j=i+1;
+      while(j<days.length && days[j]===days[j-1]+1)j++;
+      // days[i..j-1] 是一个连续段
+      const len=j-i;
+      if(len===1){posMap.set(days[i]+','+bid,'single')}
+      else{for(let k=i;k<j;k++)posMap.set(days[k]+','+bid,(k===i?'start':k===j-1?'end':'mid'))}
+      i=j;
+    }
+  });
+
   const wd=['日','一','二','三','四','五','六'];
   let html=wd.map(w=>`<div class="cal-wd">${w}</div>`).join('');
   cells.forEach(c=>{
@@ -1645,8 +1687,20 @@ function renderCal(){
       if(shown>=4)return;
       const b=bookMap[o.id], col=bookColor(o.id), full=esc(b.title);
       const disp=esc(b.title.length>5?b.title.slice(0,5):b.title);
-      /* 统一标签样式：淡彩底 + 深色字 + 左侧彩色强调边（border-left 用同色稍深） */
-      pills+=`<span class="cal-bk" style="background:${col};border-left-color:${darken(col,25)}" title="${full} · 点击查看详情" onclick="event.stopPropagation();openDetail('${o.id}')">${disp}</span>`;
+      // 根据连续色条位置决定样式与文字：
+      // start → 显示书名(起始日，左圆角)；mid → 纯色条无文字(延伸中)；end → 纯色块(右圆角，表示读完)；single → 显示书名(独立一日)
+      const pos=posMap.get(c.d+','+o.id)||'single';
+      const cls='cal-bk '+pos;
+      if(pos==='mid'){
+        // 中间日：纯色条延伸，无文字，视觉连贯
+        pills+=`<span class="${cls}" style="background:${col}" title="${full} · 第 ${c.d} 日" onclick="event.stopPropagation();openDetail('${o.id}')"></span>`;
+      } else if(pos==='end'){
+        // 结束日：纯色块右圆角，不显示书名（表示"已读完"）
+        pills+=`<span class="${cls}" style="background:${col}" title="${full} · 读完" onclick="event.stopPropagation();openDetail('${o.id}')"></span>`;
+      } else {
+        // start / single：显示书名
+        pills+=`<span class="${cls}" style="background:${col};color:#444" title="${full} · 点击查看详情" onclick="event.stopPropagation();openDetail('${o.id}')">${disp}</span>`;
+      }
       shown++;
     });
     if(c.cover.length>4)pills+=`<span class="cal-bk more">+${c.cover.length-4}</span>`;
