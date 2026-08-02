@@ -441,7 +441,7 @@
     display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3)}
   .cal-cell.sel .cal-dnum{color:var(--accent)}
   .cal-cell.sel{background:rgba(124,58,237,.14);box-shadow:inset 0 0 0 2px rgba(124,58,237,.2)}
-  .cal-books{display:flex;flex-direction:column;gap:2px;align-items:stretch;overflow:visible;min-width:0;position:relative}
+  .cal-books{display:grid;grid-auto-rows:minmax(16px,auto);grid-auto-flow:row;gap:2px;align-items:stretch;overflow:visible;min-width:0;position:relative}
   /* 连续色条：柔和粉彩色调，低饱和莫兰迪风格 */
   .cal-bk{font-size:9px;line-height:1.2;padding:2px 5px;color:#fff;font-weight:600;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:transform .10s,filter .10s;position:relative;display:block;border-radius:6px;
@@ -1595,6 +1595,20 @@ function renderCal(){
   const cells=[];
   for(let i=0;i<lead;i++)cells.push(null);        // 上月补位(淡显)
   const spans=bookSpans();   // 每本书 [开始,完结] 区间(用于整段高亮)
+  /* ═══ 全局行索引：预计算本月所有书籍的固定排序，确保同一本书在每天占据相同物理行 ═══ */
+  // 收集本月所有会出现的书（去重）
+  const monthBookIds=new Set();
+  spans.forEach(sp=>monthBookIds.add(sp.id));
+  // 按总跨度长度降序 → 起始阅读时间升序 → ID字典序，分配固定 rank(0-based 行号)
+  const bookGlobalRank=new Map(); // bookId → 固定行索引
+  [...monthBookIds]
+    .map(id=>{
+      const sp=spans.find(s=>s.id===id);
+      const d=sp?(sp.days?sp.days.size:(dayDiff(sp.start,sp.end)+1)):0;
+      return {id,id,d,st:bookMap[id]?bookMap[id].startTime:0};
+    })
+    .sort((a,b)=>b.d-a.d || a.st-b.st || a.id.localeCompare(b.id))
+    .forEach((item,idx)=>bookGlobalRank.set(item.id,idx));
   /* 预计算每本书在本月的阅读天数（用于排序：跨度长的书置顶形成跨日连贯色条） */
   const bookSpanLen=new Map(); // bookId → 本月出现天数
   spans.forEach(sp=>{ const d=sp.days?sp.days.size:(dayDiff(sp.start,sp.end)+1); bookSpanLen.set(sp.id,d) });
@@ -1612,13 +1626,8 @@ function renderCal(){
       }
     });
     if(cover.length){
-      /* 排序：连续阅读跨度越长的书越靠上置顶，确保跨日连续色条在同一行对齐不被截断。
-         同跨度按起始日期升序（先开始读的靠上），保证全局顺序一致 */
-      cover.sort((a,b)=>{
-        const aSpan=bookSpanLen.get(a.id)||0;
-        const bSpan=bookSpanLen.get(b.id)||0;
-        return bSpan-aSpan || (bookMap[a.id]?bookMap[a.id].startTime:0)-(bookMap[b.id]?bookMap[b.id].startTime:0) || a.id.localeCompare(b.id);
-      });
+      /* 按全局行索引排序：同一本书在所有日期始终占据相同物理行，跨日色条连贯不被截断 */
+      cover.sort((a,b)=>(bookGlobalRank.get(a.id)||999)-(bookGlobalRank.get(b.id)||999));
       coveredDays++;
     }
     cells.push({key,d,cover});
@@ -1655,15 +1664,17 @@ function renderCal(){
       if(shown>=4)return;
       const b=bookMap[o.id], col=bookColor(o.id), full=esc(b.title);
       const disp=esc(b.title.length>4?b.title.slice(0,4):b.title);
+      // 全局行索引：锁定每本书到固定物理行，跨日色条连贯
+      const rank=bookGlobalRank.get(o.id)??0;
       // 根据连续色条位置决定样式与文字：
       // start → 显示书名(起始日)；mid → 纯色条无文字；end → 纯色块不显示书名(表示读完)；single → 显示书名
       const pos=posMap.get(c.d+','+o.id)||'single';
       const cls='cal-bk '+pos;
       if(pos==='mid'||pos==='end'){
         // 中间日/结束日：纯色条无文字，视觉连贯；结束日用纯色块表示"已读完"
-        pills+=`<span class="${cls}" style="background:${col}" title="${full} · ${pos==='end'?'读完':'第 '+c.d+' 日'}" onclick="event.stopPropagation();openDetail('${o.id}')"></span>`;
+        pills+=`<span class="${cls}" style="background:${col};grid-row:${rank+1}" title="${full} · ${pos==='end'?'读完':'第 '+c.d+' 日'}" onclick="event.stopPropagation();openDetail('${o.id}')"></span>`;
       } else {
-        pills+=`<span class="${cls}" style="background:${col}" title="${full} · 点击查看详情" onclick="event.stopPropagation();openDetail('${o.id}')">${disp}</span>`;
+        pills+=`<span class="${cls}" style="background:${col};grid-row:${rank+1}" title="${full} · 点击查看详情" onclick="event.stopPropagation();openDetail('${o.id}')">${disp}</span>`;
       }
       shown++;
     });
