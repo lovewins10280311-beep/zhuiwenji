@@ -425,42 +425,44 @@
   }
 
   /* ============ 日历月视图：无边框简洁风格 ============ */
-  /* 7 列等宽网格,无方块/卡片/表格线;每本书以文字色区分,书名截断 4 字 */
-  .cal-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin-top:12px}
+  /* 7 列等宽网格,无方块/卡片/表格线;每本书以颜色区分,书名截断 */
+  .cal-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin-top:12px;position:relative}
   .cal-wd{text-align:center;font-size:11px;font-weight:800;color:var(--text-3);padding:8px 0 10px}
-  .cal-cell{min-height:82px;min-width:0;padding:7px 2px 5px;display:flex;flex-direction:column;gap:1.5px;overflow:hidden}
-    cursor:pointer;position:relative;border:none;background:transparent;overflow:hidden;
+  /* 单元格：去掉左右内边距和 overflow:hidden，让跨日色条的负边距能真正延伸到相邻单元格里外 */
+  .cal-cell{min-height:82px;min-width:0;padding:7px 0 5px;display:flex;flex-direction:column;gap:1.5px;
+    cursor:pointer;position:relative;border:none;background:transparent;
     transition:transform .12s cubic-bezier(.25,1,.5,1),background .15s,box-shadow .15s}
   .cal-cell:hover{background:var(--accent-weak);transform:scale(1.02);z-index:1}
   .cal-cell:active{transform:scale(.97)}
   .cal-cell.out{background:transparent;cursor:default;transform:none}
   .cal-cell.out:hover{background:transparent}
   .cal-cell.out .cal-dnum{color:var(--text-3);opacity:.45}
-  .cal-dnum{font-size:12px;font-weight:700;color:var(--text-2);line-height:1.3;align-self:flex-start}
+  /* 日期数字与色条都通过 padding-left 微调对齐到单元格内 */
+  .cal-dnum{font-size:12px;font-weight:700;color:var(--text-2);line-height:1.3;align-self:flex-start;padding-left:6px}
   .cal-cell.today .cal-dnum{background:var(--accent);color:#fff;border-radius:50%;width:21px;height:21px;
-    display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3)}
+    display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3);padding-left:0}
   .cal-cell.sel .cal-dnum{color:var(--accent)}
   .cal-cell.sel{background:rgba(124,58,237,.14);box-shadow:inset 0 0 0 2px rgba(124,58,237,.2)}
-  .cal-books{display:flex;flex-direction:column;gap:2px;overflow:hidden;min-width:0}
-  /* ═══ 连续色条：omynote / Apple Calendar 风格 · 极淡暖彩底 + 深色文字 ═��═
+  .cal-books{display:flex;flex-direction:column;gap:2px;overflow:visible;min-width:0;position:relative;z-index:1}
+  /* ═══ 连续色条：Apple Calendar 风格 · 亮彩淡色 + 跨日连贯（v18 核心修复） ═══
+     关键：去掉 .cal-cell 水平 padding 后，bar 可用负边距 ±2px 真正跨过单元格边界。
      start=连续段首日(显示书名+左圆角) mid=延伸中(纯色条无文字)
-     end=连续段末日(右圆角纯块) single=独立一日(显示书名全圆角)
-     负边距 margin ±1px 消除单元格间隙，使跨日色条视觉连贯 */
-  .cal-bk{font-size:10px;line-height:1.3;color:#444;font-weight:500;
+     end=连续段末日(右圆角纯块) single=独立一日(显示书名全圆角) */
+  .cal-bk{font-size:10px;line-height:1.3;color:#3a3a3a;font-weight:600;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
-    transition:opacity .12s;border-radius:4px;display:block;min-height:18px;display:flex;align-items:center}
-  .cal-bk:hover{opacity:.7;z-index:2}
-  .cal-bk:active{opacity:.5}
+    transition:opacity .12s;border-radius:6px;display:block;min-height:20px;display:flex;align-items:center}
+  .cal-bk:hover{opacity:.75;z-index:2}
+  .cal-bk:active{opacity:.55}
   /* 连续段起始日：左圆角 + 书名 + 右侧无圆角(向右延伸) */
-  .cal-bk.start{border-radius:4px 0 0 4px;padding:2px 6px;padding-left:6px;z-index:1;margin-right:-1px}
-  /* 连续段中间日：纯色条延伸，无文字，无圆角，负边距连接前后 */
-  .cal-bk.mid{border-radius:0;padding:2px 0;min-height:18px;z-index:1;margin-left:-1px;margin-right:-1px}
+  .cal-bk.start{border-radius:6px 0 0 6px;padding:2px 6px;z-index:1;margin-right:-2px}
+  /* 连续段中间日：纯色条延伸，无文字，无圆角，负边距连接前后两个单元格 */
+  .cal-bk.mid{border-radius:0;padding:2px 0;min-height:20px;z-index:1;margin-left:-2px;margin-right:-2px}
   /* 连续段结束日：右圆角纯色块，不显示书名（表示"已读完"） */
-  .cal-bk.end{border-radius:0 4px 4px 0;padding:2px 6px;padding-right:6px;z-index:1;margin-left:-1px}
+  .cal-bk.end{border-radius:0 6px 6px 0;padding:2px 6px;z-index:1;margin-left:-2px}
   /* 独立一日（不连续）：完整圆角标签，显示书名 */
-  .cal-bk.single{border-radius:4px;padding:2px 6px}
+  .cal-bk.single{border-radius:6px;padding:2px 6px}
   /* 折叠计数：超出4本时显示 +N */
-  .cal-bk.more{background:transparent;color:var(--text-3);text-align:center;font-weight:600;padding:1px 0;cursor:default;min-height:auto;border-radius:3px;border:none}
+  .cal-bk.more{background:transparent;color:var(--text-3);text-align:center;font-weight:600;padding:1px 0;cursor:default;min-height:auto;border-radius:6px}
   .cal-bk.more:hover,.cal-bk.more:active{opacity:1}
 
   /* ============ 摘抄模块 ============ */
@@ -1505,29 +1507,29 @@ const BOOK_COLOR_KEY='zwj_colors';
 function getColorMap(){try{return JSON.parse(localStorage.getItem(BOOK_COLOR_KEY))||{}}catch(e){return {}}}
 function setColorMap(m){try{localStorage.setItem(BOOK_COLOR_KEY,JSON.stringify(m))}catch(e){}}
 
-/* ═══ 书籍颜色：omynote / Apple Calendar 极淡暖彩标签色板（v17） ═══
-   从 omynote 阅读日历截图精确提取的配色风格：
-   每个颜色 = 极淡彩底(明度 93-97%, 饱和度 15-40%) + 暖调偏移。
-   视觉特征：像在纸上用水彩淡淡扫了一层，远看柔和统一、近看可区分。
-   文字用深色(#444)在浅底上清晰可读，不再是白字。
+/* ═══ 书籍颜色：Apple Calendar 风格 · 亮彩淡色（v18） ═══
+   从 iPhone 苹果日历多日事件条精确提取的配色规律：
+   每个颜色 = 中高饱和(40-65%) + 高明度(78-88%) 的"亮粉彩"。
+   特征：颜色清晰可见(不是发灰的水彩)，但保持柔和不刺眼，深字(#3a3a3a)清晰可读。
+   参考实际值：#FFB088(亮橘)/ #A8D5A8(清绿)/ #FFB8C8(亮粉)/ #B8D5F0(亮蓝)。
    16 色覆盖全色相环，相邻色保持足够区分度。 */
 const BOOK_BASE_COLORS=[
-  '#F0E6D8',  // 暖米色(Behave风)
-  '#F8DDE4',  // 柔玫瑰(正见风)
-  '#EDE4F2',  // 浅藤紫(伊加利亚风)
-  '#DEF0E6',  // 嫩薄荷(市民自白风)
-  '#FAE6DD',  // 蜜桃(Tornado风)
-  '#E4EEF2',  // 雾蓝灰
-  '#F0EEDD',  // 奶油
-  '#FDF0E4',  // 杏仁白
-  '#E8EAF0',  // 薰衣草灰
-  '#E0F0E8',  // 薄荷绿
-  '#F9E0E4',  // 樱花粉
-  '#EAEED8',  // 淡黄绿
-  '#F2E4EC',  // 藕荷
-  '#E0E8F0',  // 天青
-  '#F5EDE4',  // 燕麦奶
-  '#E8F0EE',  // 湖绿
+  '#FFB088',  // 亮橘(《被讨厌的勇气》风)
+  '#FFB8C8',  // 亮粉(《痛后周期》风)
+  '#A8D5A8',  // 清绿(《老友记》风)
+  '#B8D5F0',  // 亮蓝
+  '#C8B0E5',  // 亮紫
+  '#FFE08A',  // 亮黄
+  '#88D5CC',  // 青绿
+  '#FFC8A0',  // 桃色
+  '#F5A8C8',  // 玫瑰粉
+  '#A8B5E5',  // 靛蓝
+  '#C8E58A',  // 亮柠檬
+  '#FFA8A8',  // 珊瑚红
+  '#88C5E5',  // 亮青
+  '#E5A8D5',  // 紫红
+  '#B8A8E5',  // 薰衣草
+  '#A8C5C5',  // 鼠尾草
 ];
 
 /* HSL→HEX */
@@ -1540,15 +1542,15 @@ function darken(hex,pct){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slic
   return '#'+f(r).toString(16).padStart(2,'0')+f(g).toString(16).padStart(2,'0')+f(b).toString(16).padStart(2,'0')}
 /* 从「已用颜色集合」挑下一个唯一色：精选板优先；超出后用黄金角 HSL 单调生成。
    _genSeq 全局单调，保证每次生成的(色相/饱和/明度)三元组都不同 → 必然唯一、绝不重复；
-   极高明度(93-97%)、极低饱和(15-40%)，omynote 风格淡彩底，深字(#444)可读。 */
+   高饱和(45-65%)+ 高明度(78-88%)，Apple Calendar 风格亮彩淡色。 */
 let _genSeq=0;
 function nextBookColor(used){
   for(const c of BOOK_BASE_COLORS) if(!used.has(c)) return c;
   while(true){
     _genSeq++;
     const hue=(_genSeq*137.508)%360;            // 黄金角：相邻色相最大分离
-    const sat=15+(_genSeq%6)*5;                  // 15/20/25/30/35/40 极低饱和（淡彩水彩感）
-    const light=93+((_genSeq%5)*1);              // 93/94/95/96/97 极高明度（浅底深字）
+    const sat=45+(_genSeq%5)*4;                  // 45/49/53/57/61 中高饱和（颜色清晰可见）
+    const light=78+((_genSeq%6)*2);              // 78/80/82/84/86/88 高明度（柔和不刺眼）
     const c=hslToHex(hue,sat,light);
     if(!used.has(c)) return c;                    // 三元组单调→必唯一
   }
