@@ -1520,49 +1520,26 @@ const BOOK_COLOR_KEY='zwj_colors';
 function getColorMap(){try{return JSON.parse(localStorage.getItem(BOOK_COLOR_KEY))||{}}catch(e){return {}}}
 function setColorMap(m){try{localStorage.setItem(BOOK_COLOR_KEY,JSON.stringify(m))}catch(e){}}
 
-/* ═══ 书籍颜色：图1 iPhone日历真实色板（v19 重大修复） ═══
-   从用户提供的 5×3 色板截图精确提取：
-   • Row1 浅色背景：#7EDBD2 #BEEFEA #FFD94D #FFC7DE #B7D6F7
-   • Row2 深色图标：#008E6B #46B065 #81C570 #DCECB5 #E8F1DC
-   • Row3 变体背景：#97D72D #DFF195 #F1E9CA #FFE0C6 #F0C2BF
-   视觉特征：bar 用浅色铺满 + 左侧 3-4px 深色小色块(text 仍深色 #3a3a3a)。
-   这是 Apple Calendar 多日事件的实际呈现方式（不是单一浅彩底）。 */
+/* ═══ 书籍颜色（v20）：图1色板 + 65%透明度 ═══
+   用户明确要求：色板拉 65% 透明度。
+   16 色覆盖全色相环，bar 底色 = 色值 + alpha 0.65，文字深色可读。 */
 const BOOK_BASE_COLORS=[
-  '#BEEFEA',  // 薄荷浅
-  '#B7D6F7',  // 天空浅蓝
+  '#7EDBD2',  // 青绿
+  '#B7D6F7',  // 天空蓝
   '#FFC7DE',  // 樱花粉
   '#DCECB5',  // 嫩黄绿
   '#FFD94D',  // 亮黄
-  '#E8F1DC',  // 极嫩绿
+  '#BEEFEA',  // 薄荷浅
   '#FFE0C6',  // 蜜桃
   '#F1E9CA',  // 奶油
   '#DFF195',  // 柠檬绿
-  '#7EDBD2',  // 青绿
+  '#97D72D',  // 深柠绿
   '#F0C2BF',  // 玫粉
   '#FFCCD5',  // 桃花
   '#C5E8D8',  // 鼠尾草
   '#A8D5E5',  // 蓝绿
   '#E0F0D5',  // 开心果
   '#FFE5B4',  // 浅橙
-];
-/* 左侧深色小色块（每本书对应一种"主题色"，深色块贴在bar最左侧3-4px） */
-const BOOK_ACCENT_COLORS=[
-  '#008E6B',  // 深青绿
-  '#3D7BD9',  // 深蓝
-  '#FF7BAA',  // 深粉
-  '#46B065',  // 深绿
-  '#FFB800',  // 深黄
-  '#7BA821',  // 深黄绿
-  '#E89B5C',  // 深橙
-  '#D4A020',  // 深琥珀
-  '#5FA00F',  // 深柠
-  '#005038',  // 墨青
-  '#D87070',  // 深玫
-  '#E5508C',  // 深桃
-  '#2D8040',  // 深鼠尾草
-  '#1E5B8C',  // 深天蓝
-  '#4A7D2A',  // 深开心果
-  '#CC7722',  // 深橘
 ];
 
 /* HSL→HEX */
@@ -1573,19 +1550,17 @@ function hslToHex(h,s,l){s/=100;l/=100;const k=n=>(n+h/30)%12;const a=s*Math.min
 function darken(hex,pct){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
   const f=c=>Math.max(0,Math.round(c*(1-pct/100)));
   return '#'+f(r).toString(16).padStart(2,'0')+f(g).toString(16).padStart(2,'0')+f(b).toString(16).padStart(2,'0')}
-/* 从「已用颜色集合」挑下一个唯一色：精选板优先；超出后用黄金角 HSL 单调生成。
-   _genSeq 全局单调，保证每次生成的(色相/饱和/明度)三元组都不同 → 必然唯一、绝不重复；
-   高饱和(45-65%)+ 高明度(78-88%)，Apple Calendar 风格亮彩淡色。 */
+/* 从「已用颜色集合」挑下一个唯一色：精选板优先；超出后用黄金角 HSL 单调生成。 */
 let _genSeq=0;
 function nextBookColor(used){
   for(const c of BOOK_BASE_COLORS) if(!used.has(c)) return c;
   while(true){
     _genSeq++;
-    const hue=(_genSeq*137.508)%360;            // 黄金角：相邻色相最大分离
-    const sat=45+(_genSeq%5)*4;                  // 45/49/53/57/61 中高饱和（颜色清晰可见）
-    const light=78+((_genSeq%6)*2);              // 78/80/82/84/86/88 高明度（柔和不刺眼）
+    const hue=(_genSeq*137.508)%360;
+    const sat=45+(_genSeq%5)*4;
+    const light=70+((_genSeq%6)*3);
     const c=hslToHex(hue,sat,light);
-    if(!used.has(c)) return c;                    // 三元组单调→必唯一
+    if(!used.has(c)) return c;
   }
 }
 /* 为全部书籍补齐唯一颜色：已分配恒定不变；新书取下一个空闲色 */
@@ -1599,8 +1574,8 @@ function ensureBookColors(){
   if(changed)setColorMap(map);return map;
 }
 let _colorMapCache=null;
-/* v19 色板变更：清除旧色板缓存，强制用新色板重新分配 */
-try{const _old=JSON.parse(localStorage.getItem(BOOK_COLOR_KEY)||'{}');const _v18colors=['#FFB088','#FFB8C8','#A8D5A8','#B8D5F0','#C8B0E5','#FFE08A','#88D5CC','#FFC8A0','#F5A8C8','#A8B5E5','#C8E58A','#FFA8A8','#88C5E5','#E5A8D5','#B8A8E5','#A8C5C5','#E8D5C4','#D5E8DC','#E0D5E8','#D5E2E8','#F0D5D5','#D5E8D8','#EDE0C5','#DCE5F0','#EBDFD5','#C5E5D5','#F0E2D0','#D0DFE8','#F2DBDB','#BFE0CC','#EADAB8','#C5DAE8','#F0E6D8','#F8DDE4','#EDE4F2','#DEF0E6','#FAE6DD','#E4EEF2','#F0EEDD','#FDF0E4','#E8EAF0','#E0F0E8','#F9E0E4','#EAEED8','#F2E4EC','#E0E8F0','#F5EDE4','#E8F0EE'];const _needsReset=Object.values(_old).some(c=>_v18colors.includes(c));if(_needsReset){localStorage.removeItem(BOOK_COLOR_KEY);}}catch(e){}
+/* v20 色板变更：清除旧色板缓存(v19双数组色)，强制用新色板重新分配 */
+try{const _old=JSON.parse(localStorage.getItem(BOOK_COLOR_KEY)||'{}');const _v19accent=['#008E6B','#3D7BD9','#FF7BAA','#46B065','#FFB800','#7BA821','#E89B5C','#D4A020','#5FA00F','#005038','#D87070','#E5508C','#2D8040','#1E5B8C','#4A7D2A','#CC7722'];const _needsReset=Object.values(_old).some(c=>_v19accent.includes(c)||c==='#FFB088'||c==='#E8D5C4'||c==='#F0E6D8');if(_needsReset){localStorage.removeItem(BOOK_COLOR_KEY);}}catch(e){}
 function bookColor(id){
   if(_colorMapCache&&_colorMapCache[id])return _colorMapCache[id];
   _colorMapCache=ensureBookColors();return _colorMapCache[id]||BOOK_BASE_COLORS[0];
@@ -1612,16 +1587,14 @@ function calMove(d){
   selDay=null;renderCal();
 }
 function dstr(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
-/* 书籍的左侧深色小色块（与浅色背景配对，对应 iPhone 日历多日事件的"主题色标签"） */
+/* 书籍的左侧深色小色块：用 bookColor 的不透明版本（无透明度），bar 底色用 65% 透明度 */
 function accentColor(id){
-  const bg=bookColor(id);
-  const idx=BOOK_BASE_COLORS.indexOf(bg);
-  if(idx>=0)return BOOK_ACCENT_COLORS[idx];
-  // 旧数据或动态生成色：根据背景明度反推一个深色
-  const hex=bg.slice(1);
-  const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
-  const f=c=>Math.max(0,Math.round(c*0.45));
-  return '#'+f(r).toString(16).padStart(2,'0')+f(g).toString(16).padStart(2,'0')+f(b).toString(16).padStart(2,'0');
+  return bookColor(id);
+}
+/* hex → rgba 字符串，alpha 为 0-1 */
+function hexA(hex,alpha){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 /* 每本书的「阅读区间」:有完结/弃文日期的按 [开始,完结] 区间铺带;
    进行中(在读/追更)且未填结束日的,只标注实际有阅读记录的天(来自 bookday),
@@ -1763,39 +1736,37 @@ function renderCal(){
     </div>`;
   });
 
-  /* Bars overlay：每本书一个/多个连续段，按全局行号定位，
-     left/width 用 7列百分比确保跨日连贯 */
-  const TOP_OFFSET=26;       // 日期数字下方
-  const BAR_H=18;            // 单条 bar 高度
-  const BAR_GAP=2;           // bar 间距
+  /* Bars overlay：每本书一个/多个连续段，按全局行号定位。
+     关键：bar 的 left/width 基于网格列号(lead偏移+天-1)，不是天数。 */
+  const TOP_OFFSET=26;
+  const BAR_H=18;
+  const BAR_GAP=2;
   const maxRow=Math.max(0,...[...bookGlobalRow.values()]);
 
   let barsHtml=`<div class="cal-bars-overlay" style="position:absolute;left:0;right:0;top:${TOP_OFFSET}px;pointer-events:none">`;
   bookSegments.forEach((segs,id)=>{
     const b=bookMap[id];if(!b)return;
     const row=bookGlobalRow.get(id)||0;
-    const bg=bookColor(id);
     const accent=accentColor(id);
+    const bg=hexA(accent,0.65);   // bar 底色 = 主题色 65% 透明度
     const full=esc(b.title);
     const disp=esc(b.title.length>5?b.title.slice(0,5):b.title);
     segs.forEach(seg=>{
-      const isSingle=(seg.startDay===seg.endDay);
-      const left=(seg.startDay-1)/7*100;
-      const width=(seg.endDay-seg.startDay+1)/7*100;
+      // bar 的网格列范围 = lead偏移 + 天号 - 1
+      const startCol=lead+seg.startDay-1;
+      const endCol=lead+seg.endDay-1;
+      const colSpan=endCol-startCol+1;
+      const left=startCol/7*100;          // 占总宽百分比
+      const width=colSpan/7*100;
       const top=row*(BAR_H+BAR_GAP);
-      const bookTitle=full;
-      if(isSingle){
-        barsHtml+=`<div class="cal-bk-b single" style="position:absolute;left:calc(${left}% + 1px);width:calc(${width}% - 2px);top:${top}px;height:${BAR_H}px;background:${bg};border-left:4px solid ${accent};pointer-events:auto" title="${bookTitle}" onclick="event.stopPropagation();openDetail('${id}')">${disp}</div>`;
-      } else {
-        barsHtml+=`<div class="cal-bk-b multi" style="position:absolute;left:calc(${left}% + 1px);width:calc(${width}% - 2px);top:${top}px;height:${BAR_H}px;background:${bg};border-left:4px solid ${accent};pointer-events:auto" title="${bookTitle}" onclick="event.stopPropagation();openDetail('${id}')">${disp}</div>`;
-      }
+      barsHtml+=`<div class="cal-bk-b ${seg.startDay===seg.endDay?'single':'multi'}" style="position:absolute;left:calc(${left}% + 1px);width:calc(${width}% - 2px);top:${top}px;height:${BAR_H}px;background:${bg};border-left:3px solid ${accent};pointer-events:auto" title="${full}" onclick="event.stopPropagation();openDetail('${id}')">${disp}</div>`;
     });
   });
   barsHtml+=`</div>`;
 
-  /* 调整单元格高度以容纳 bar overlay：每个 cell 高度 = 顶部日期区 + (maxRow+1) * (BAR_H+BAR_GAP) */
+  /* 调整单元格高度：顶部日期区 + bar 区域，bar 在单元格内部 overlay 层 */
   const cellH=TOP_OFFSET+(maxRow+1)*(BAR_H+BAR_GAP)+4;
-  const boardH=`<div class="cal-board" style="--cell-h:${cellH}px">${html}${barsHtml}</div>`;
+  const boardH=`<div class="cal-board" style="--cell-h:${cellH}px;position:relative">${html}${barsHtml}</div>`;
   document.getElementById('calGrid').innerHTML=boardH;
 
   // 月度小结
@@ -1806,7 +1777,7 @@ function renderCal(){
 
   // 图例：按全局行号顺序显示，让图例顺序与日历中的视觉顺序一致
   const lgIds=[...bookGlobalRow.keys()].sort((a,b)=>bookGlobalRow.get(a)-bookGlobalRow.get(b));
-  const lg=lgIds.map(id=>{const b=bookMap[id];return `<div class="lg"><i class="sw" style="background:${bookColor(id)};border-left:4px solid ${accentColor(id)}"></i><span>${esc(b.title)}</span></div>`}).join('');
+  const lg=lgIds.map(id=>{const b=bookMap[id];const c=bookColor(id);return `<div class="lg"><i class="sw" style="background:${hexA(c,0.65)};border-left:3px solid ${c}"></i><span>${esc(b.title)}</span></div>`}).join('');
   document.getElementById('calLegend').innerHTML=lg;
  }catch(err){
   console.error('renderCal error:',err);
@@ -1873,11 +1844,12 @@ function renderDayDetail(){
   }
   events.forEach(ev=>{
     const b=bookMap[ev.bookId];if(!b)return;
-    const bg=bookColor(ev.bookId), accent=accentColor(ev.bookId);
+    const c=bookColor(ev.bookId);
+    const bg=hexA(c,0.65), accent=c;
     const top=Math.max(0,(ev.hm-DAY_START*60)/60*HOUR_H-12);
     const dt=new Date(ev.ts);
     const hhmm=String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
-    panelHtml+=`<div class="dv-event" style="top:${top}px;background:${bg};border-left:4px solid ${accent}" onclick="openDetail('${ev.bookId}')">
+    panelHtml+=`<div class="dv-event" style="top:${top}px;background:${bg};border-left:3px solid ${accent}" onclick="openDetail('${ev.bookId}')">
       <span class="dv-time">${hhmm}</span>
       <span class="dv-title">${esc(b.title)}</span>
     </div>`;
