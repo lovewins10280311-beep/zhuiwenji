@@ -1811,24 +1811,17 @@ function renderCal(){
   const wd=['日','一','二','三','四','五','六'];
   let html=wd.map(w=>`<div class="cal-wd">${w}</div>`).join('');
 
-  /* 渲染：单元格(日期数字) + bars overlay(前 5 行) + +N 按钮(第 5 行末尾) */
+  /* 渲染：单元格(日期数字 + +N 折叠按钮) + bars overlay */
   cells.forEach(c=>{
     if(c===null){html+=`<div class="cal-cell out"></div>`;return;}
     const isToday=c.key===t, isSel=c.key===selDay;
     const hidden=dayHiddenCount.get(c.d)||0;
-    // +N 按钮定位在 cell 内第 5 行末尾（紧贴 bookRow=4 下方）
-    // cell 内坐标：top = TOP_OFFSET + 5*(BAR_H+BAR_GAP) = 第 5 行结束位置
     const moreBtn=hidden>0
-      ? `<span class="cal-more" style="top:${TOP_OFFSET + 5*(BAR_H+BAR_GAP)}px" data-day="${c.key}">+${hidden}</span>`
+      ? `<span class="cal-more" onclick="event.stopPropagation();selectDay('${c.key}')">+${hidden}</span>`
       : '';
     html+=`<div class="cal-cell ${isToday?'today':''} ${isSel?'sel':''}" onclick="selectDay('${c.key}')">
       <span class="cal-dnum">${c.d}</span>${moreBtn}
     </div>`;
-  });
-
-  // 给 +N 按钮绑定 click（避免内联 onclick 转义问题）
-  document.querySelectorAll('.cal-more[data-day]').forEach(el=>{
-    el.onclick=(e)=>{e.stopPropagation();selectDay(el.dataset.day);};
   });
 
   /* Bars overlay：每本书一个/多个连续段，按全局行号定位。
@@ -1839,10 +1832,18 @@ function renderCal(){
     每格高度固定紧凑(62px)，不随书本数量膨胀，周间距恒定 */
   const HEADER_H=34;        // 星期标题行高度
   const TOP_OFFSET=24;       // 日期数字区高度
-  const BAR_H=14;            // bar 高度
+  const BAR_H=14;            // bar 高度（紧凑以容纳多行）
   const BAR_GAP=1;
-  // 严格 5 行 cellH（用户要求）
-  const cellH=TOP_OFFSET+5*(BAR_H+BAR_GAP)+6;  // 24+5*15+6=105
+  // cellH 动态：按本周实际最大 bookRow 决定，超 8 行的部分隐藏（避免格高爆炸）
+  let maxRowInWeek=0;
+  bookRowByWeek.forEach(weekMap=>{
+    weekMap.forEach(row=>{
+      if(row>maxRowInWeek)maxRowInWeek=row;
+    });
+  });
+  // 至少留 2 行空间（视觉美观），最多 8 行（手机可接受的高度）
+  const effectiveRows=Math.min(Math.max(maxRowInWeek+1, 2), 8);
+  const cellH=TOP_OFFSET+effectiveRows*(BAR_H+BAR_GAP)+6;
   // overlay 覆盖整个 board
   const overlayTop=0;
   const overlayH=HEADER_H+6*cellH;
@@ -1969,12 +1970,6 @@ function renderDayDetail(){
   events.sort((a,b)=>a.ts-b.ts);
   // books 列表更新（包含 addBook 的新书）
   // 注：原 books 已包含；addBook 加入 idSet 让 books 包含
-
-  /* 时间轴参数（HOUR_H 每小时像素 / DAY_START 显示起点 / DAY_END 显示终点） */
-  const HOUR_H=44;
-  const DAY_START=7;
-  const DAY_END=24;
-  const totalH=(DAY_END-DAY_START)*HOUR_H;
 
   // 时间刻度 HTML
   let scaleHtml='<div class="dv-scale">';
