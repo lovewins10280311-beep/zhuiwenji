@@ -1801,17 +1801,10 @@ function renderCal(){
   const TOP_OFFSET=24;       // 日期数字区高度
   const BAR_H=14;            // bar 高度（紧凑以容纳多行）
   const BAR_GAP=1;
-  // cellH 动态：按本周实际最大 bookRow 决定，超 8 行的部分隐藏（避免格高爆炸）
-  let maxRowInWeek=0;
-  bookRowByWeek.forEach(weekMap=>{
-    weekMap.forEach(row=>{
-      if(row>maxRowInWeek)maxRowInWeek=row;
-    });
-  });
-  // 至少留 2 行空间（视觉美观），最多 8 行（手机可接受的高度）
-  const effectiveRows=Math.min(Math.max(maxRowInWeek+1, 2), 8);
-  const cellH=TOP_OFFSET+effectiveRows*(BAR_H+BAR_GAP)+6;
-  // overlay 覆盖整个 board
+  const MAX_VISIBLE_ROWS=5;   // 每格最多显示 5 行 bar
+  // 固定格高 = 日期区 + 5行bar + 余量
+  const cellH=TOP_OFFSET+MAX_VISIBLE_ROWS*(BAR_H+BAR_GAP)+6;  // 24+5*15+6=105
+  // overlay 覆盖整个 board：从顶部(含星期行)到 6 周数据行底部
   const overlayTop=0;
   const overlayH=HEADER_H+6*cellH;
 
@@ -1828,10 +1821,10 @@ function renderCal(){
       const colEnd=(lead+seg.endDay-1)%7;
       const colSpan=colEnd-colStart+1;
       const weekRow=Math.floor((lead+seg.startDay-1)/7); // 第几周(0-5)
-      // 按周取 bookRow：每周独立排序
+      // 按周取 bookRow：每周独立排序，超出 MAX_VISIBLE_ROWS-1 的直接隐藏（不压回，避免重叠）
       const weekMap=bookRowByWeek.get(weekRow);
       const bookRow=weekMap?weekMap.get(id):-1;
-      if(bookRow===undefined)return;
+      if(bookRow===undefined || bookRow>=MAX_VISIBLE_ROWS)return;
       const left=colStart/7*100;
       const width=colSpan/7*100;
       // top = 星期标题行高 + 周行号×格高 + 日期区偏移(TOP_OFFSET) + 书序行偏移
