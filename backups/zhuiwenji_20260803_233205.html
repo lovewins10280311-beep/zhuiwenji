@@ -457,9 +457,9 @@
     display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3);padding-left:0}
   .cal-cell.sel .cal-dnum{color:var(--accent)}
   .cal-cell.sel{background:rgba(124,58,237,.14);box-shadow:inset 0 0 0 2px rgba(124,58,237,.2)}
-  /* +N 折叠按钮：每天 bookRow ≥ 5 的隐藏书目数 —— 放 cell 底部 */
-  .cal-more{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;cursor:pointer;line-height:1.2;box-shadow:0 1px 3px rgba(124,58,237,.35);transition:transform .12s;z-index:10}
-  .cal-more:hover{transform:translateX(-50%) scale(1.1)}
+  /* +N 折叠按钮：每天 bookRow ≥ 5 的隐藏书目数 */
+  .cal-more{position:absolute;top:2px;right:3px;font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:10px;padding:1px 5px;cursor:pointer;line-height:1.2;box-shadow:0 1px 3px rgba(124,58,237,.35);transition:transform .12s}
+  .cal-more:hover{transform:scale(1.1)}
   /* ═══ Bars Overlay（v19 核心）：iPhone 日历多日事件风格 ═══
      独立 absolute 定位层，每本书一根/多根横跨多日的 bar，按全局行号定位。
      浅色背景 + 左侧 4px 深色"主题色块" + 深色文字，模拟 Apple Calendar 多日事件条。 */
@@ -1911,7 +1911,6 @@ function renderCal(){
 function selectDay(key){selDay=(selDay===key)?null:key;renderDayDetail();renderCal()}
 function renderDayDetail(){
   if(!selDay){closeMask('dayViewMask');return}
-  try{
   const bookMap={};getBooks().forEach(b=>bookMap[b.id]=b);
   const t=today();
   // 当天在 bookday 有记录的书 + 落在阅读区间的书（去重）
@@ -2045,11 +2044,6 @@ function renderDayDetail(){
   document.getElementById('dvBody').innerHTML=
     `<div class="dv-axis">${scaleHtml}${panelHtml}</div>${backlog}`;
   openMask('dayViewMask');
-  }catch(err){
-    console.error('renderDayDetail error:',err);
-    document.getElementById('dvBody').innerHTML='<div style="padding:20px;color:#c00;font-size:12px">日视图渲染出错: '+String(err.message||err)+'</div>';
-    openMask('dayViewMask');
-  }
 }
 function dayBacklog(){
   const sel=document.getElementById('dayLogBook');
