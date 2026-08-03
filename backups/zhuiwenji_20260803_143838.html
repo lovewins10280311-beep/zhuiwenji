@@ -1668,43 +1668,31 @@ function renderCal(){
     if(daySet.size>0)bookMonthDays.set(sp.id,daySet);
   });
 
-  /* ═══ 按周 bookRow 重排（v27 关键修复） ═══
-     之前用全局 bookGlobalRow（一本书一月内一个固定行号），13 本书就有 0-12 行；
-     渲染时 Math.min(...,4) 把 5+ 的书全压到第 5 行 → 多本书重叠成团。
-     现在改为：每周独立分配 bookRow。每周内按"该周内最长连续段 DESC → 起始日 ASC → id ASC"排序。
-     同一本书跨周时，每周都重排（与 Apple Calendar 跨周事件行为一致），
-     这样同一天同周内的 N 本书被分配到不同 bookRow（0,1,2,...），不再重叠。 */
-  const bookRowByWeek=new Map(); // weekRow(0-5) → Map<bookId, bookRow>
-  for(let weekRow=0;weekRow<6;weekRow++){
-    const weekBooksInfo=new Map(); // bookId → {maxStreak, firstDay}
-    bookSegments.forEach((segs,id)=>{
-      let maxStreak=0,firstDay=null;
-      segs.forEach(seg=>{
-        const segStartCol=(lead+seg.startDay-1);
-        const segEndCol=(lead+seg.endDay-1);
-        const segWeekStart=Math.floor(segStartCol/7);
-        const segWeekEnd=Math.floor(segEndCol/7);
-        if(segWeekStart<=weekRow && segWeekEnd>=weekRow){
-          // 这本书在当前周有段
-          const segLen=seg.endDay-seg.startDay+1;
-          if(segLen>maxStreak)maxStreak=segLen;
-          if(firstDay===null || seg.startDay<firstDay)firstDay=seg.startDay;
-        }
-      });
-      if(maxStreak>0)weekBooksInfo.set(id,{maxStreak,firstDay});
-    });
-    // 排序：周内最长连续 DESC → 起始日 ASC → id ASC
-    const weekRowMap=new Map();
-    [...weekBooksInfo.entries()]
-      .sort((a,b)=>{
-        const sDiff=b[1].maxStreak-a[1].maxStreak;
-        if(sDiff!==0)return sDiff;
-        if(a[1].firstDay!==b[1].firstDay)return a[1].firstDay-b[1].firstDay;
-        return a[0].localeCompare(b[0]);
-      })
-      .forEach(([id],idx)=>weekRowMap.set(id,idx));
-    bookRowByWeek.set(weekRow,weekRowMap);
-  }
+  /* ═══ 全局行索引（v19 关键修复） ═══
+     为本月出现的每本书分配固定行号(0,1,2...)，同一本书在所有日期始终在同一行，
+     bars 用独立 overlay 层 absolute 定位跨日横铺，从根本上消除跨日截断错位。
+     排序规则：最长连续天数 DESC → 起始日期 ASC → ID ASC */
+  const bookLongestStreak=new Map(); // bookId → 该书本月最长连续天数
+  bookMonthDays.forEach((days,id)=>{
+    const sorted=[...days].sort((a,b)=>a-b);
+    let maxS=1,curS=1;
+    for(let i=1;i<sorted.length;i++){
+      if(sorted[i]===sorted[i-1]+1){curS++;if(curS>maxS)maxS=curS}
+      else curS=1;
+    }
+    bookLongestStreak.set(id,maxS);
+  });
+  const bookGlobalRow=new Map(); // bookId → 固定行号
+  [...bookMonthDays.keys()]
+    .sort((a,b)=>{
+      const sDiff=(bookLongestStreak.get(b)||0)-(bookLongestStreak.get(a)||0);
+      if(sDiff!==0)return sDiff;
+      const fA=Math.min(...bookMonthDays.get(a));
+      const fB=Math.min(...bookMonthDays.get(b));
+      if(fA!==fB)return fA-fB;
+      return a.localeCompare(b);
+    })
+    .forEach((id,idx)=>bookGlobalRow.set(id,idx));
 
   /* 每本书的连续阅读段 [{startDay,endDay}]（用于跨日 bar 横铺定位） */
   const bookSegments=new Map();
@@ -1779,6 +1767,8 @@ function renderCal(){
   let barsHtml=`<div class="cal-bars-overlay" style="top:${overlayTop}px;height:${overlayH}px">`;
   bookSegments.forEach((segs,id)=>{
     const b=bookMap[id];if(!b)return;
+    // 限制书序行：超出 MAX_VISIBLE_ROWS 的 bar 不显示（避免格高爆炸）
+    const bookRow=Math.min(bookGlobalRow.get(id)||0, MAX_VISIBLE_ROWS-1);
     const accent=accentColor(id);
     const bg=hexA(accent,0.65);
     const full=esc(b.title);
@@ -1789,10 +1779,6 @@ function renderCal(){
       const colEnd=(lead+seg.endDay-1)%7;
       const colSpan=colEnd-colStart+1;
       const weekRow=Math.floor((lead+seg.startDay-1)/7); // 第几周(0-5)
-      // 按周取 bookRow：每周独立排序，超出 MAX_VISIBLE_ROWS-1 的直接隐藏（不压回，避免重叠）
-      const weekMap=bookRowByWeek.get(weekRow);
-      const bookRow=weekMap?weekMap.get(id):-1;
-      if(bookRow===undefined || bookRow>=MAX_VISIBLE_ROWS)return;
       const left=colStart/7*100;
       const width=colSpan/7*100;
       // top = 星期标题行高 + 周行号×格高 + 日期区偏移(TOP_OFFSET) + 书序行偏移
@@ -1811,25 +1797,9 @@ function renderCal(){
       ?`<span>涉及 <b>${monthBooks.size}</b> 本</span><span>阅读区间覆盖 <b>${coveredDays}</b> 天</span>`
       :`<span style="color:var(--text-3)">🌱 还没有阅读记录 · 添加书籍并「记一笔」开始追踪</span>`;
 
-  /* 图例：按"该书第一次出现所在周的 bookRow"顺序展示
-     同周内：周内最长连续 DESC；跨周：以第一周 bookRow 为准 */
-  const legendOrder=[];
-  bookRowByWeek.forEach((weekMap,weekRow)=>{
-    [...weekMap.entries()].forEach(([id,bookRow])=>{
-      legendOrder.push({id,weekRow,bookRow});
-    });
-  });
-  // 去重（同一本书可能多周出现），保留首次
-  const seen=new Set();
-  const uniqueLegend=legendOrder.filter(x=>{
-    if(seen.has(x.id))return false;
-    seen.add(x.id);return true;
-  });
-  uniqueLegend.sort((a,b)=>{
-    if(a.weekRow!==b.weekRow)return a.weekRow-b.weekRow;
-    return a.bookRow-b.bookRow;
-  });
-  const lg=uniqueLegend.map(({id})=>{const b=bookMap[id];const c=bookColor(id);return `<div class="lg"><i class="sw" style="background:${hexA(c,0.65)};border-left:3px solid ${c}"></i><span>${esc(b.title)}</span></div>`}).join('');
+  // 图例：按全局行号顺序显示，让图例顺序与日历中的视觉顺序一致
+  const lgIds=[...bookGlobalRow.keys()].sort((a,b)=>bookGlobalRow.get(a)-bookGlobalRow.get(b));
+  const lg=lgIds.map(id=>{const b=bookMap[id];const c=bookColor(id);return `<div class="lg"><i class="sw" style="background:${hexA(c,0.65)};border-left:3px solid ${c}"></i><span>${esc(b.title)}</span></div>`}).join('');
   document.getElementById('calLegend').innerHTML=lg;
  }catch(err){
   console.error('renderCal error:',err);
