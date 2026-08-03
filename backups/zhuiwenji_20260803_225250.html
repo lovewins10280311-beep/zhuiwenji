@@ -1720,42 +1720,40 @@ function renderCal(){
     bookSegments.set(id,segs);
   });
 
-  /* ═══ 按周 混合行位算法（v30.1） ═══
-     v27 "最长连续 DESC + 起始日 ASC"：每本书固定一行，前书结束后空缺被浪费
-     v30 纯 ladder：按段顺序填最早可用行，长段持续占 row=0 → 短段全挤到下方
-     现在用 v30.1 混合算法：
-       1. 每本书取"当周内最长连续段"作主段，按 len DESC + 起始日 ASC + id ASC 排序
-       2. ladder 分配：找最早可用行（rowEndDay[row] < startDay），让空缺被后续书填补
-       3. 同一本书多段 → bookRow 取主段的行（保持视觉对齐） */
+  /* ═══ 按周 ladder 行位分配（v30 关键修复） ═══
+     之前 v27 用"每本书当周内的最长连续段 DESC + 起始日 ASC" 排序 → 一本书占一个固定行，
+     前一本书结束后留下空位，后一本书也必须用下一行 → 视觉空缺、浪费行位。
+     现在改用 ladder 算法（与 Apple Calendar 多日事件一致）：
+       - 把当周内所有段按起始日 ASC 排序
+       - 每个段找最早可用行：该行当前 endDay < 当前段 startDay 才可用
+       - 同一本书多段时，bookRow 取最早分配的行（保持视觉对齐）
+     这样"爱播先别急 20-22"结束后，"雪人爱上圣 23-25"可接续同 row 0，无空缺。 */
   const bookRowByWeek=new Map(); // weekRow(0-5) → Map<bookId, bookRow>
   for(let weekRow=0;weekRow<6;weekRow++){
-    // 收集每本书在当周的最长连续段（主段）
-    const bookMainSeg=new Map(); // bookId → {startDay, endDay, len}
+    // 收集当周内所有段（不按 bookId 合并，按段独立参与 ladder）
+    const weekSegs=[];
     bookSegments.forEach((segs,bookId)=>{
-      let maxLen=0,best=null;
       segs.forEach(seg=>{
         const segStartCol=(lead+seg.startDay-1);
         const segEndCol=(lead+seg.endDay-1);
         const segWeekStart=Math.floor(segStartCol/7);
         const segWeekEnd=Math.floor(segEndCol/7);
         if(segWeekStart<=weekRow && segWeekEnd>=weekRow){
-          const len=seg.endDay-seg.startDay+1;
-          if(len>maxLen){maxLen=len;best={startDay:seg.startDay,endDay:seg.endDay,len}}
+          weekSegs.push({bookId,startDay:seg.startDay,endDay:seg.endDay});
         }
       });
-      if(best)bookMainSeg.set(bookId,best);
     });
-    // 按最长连续 DESC + 起始日 ASC + id ASC 排序（连续长的书优先占 row=0）
-    const sortedBooks=[...bookMainSeg.entries()].sort((a,b)=>
-      b[1].len-a[1].len || a[1].startDay-b[1].startDay || a[0].localeCompare(b[0])
-    );
-    // ladder 分配：找最早可用行（空缺位置填补）
+    // 排序：起始日 ASC → 同日 endDay DESC（更长段优先） → id ASC（稳定）
+    weekSegs.sort((a,b)=>a.startDay-b.startDay || b.endDay-a.endDay || a.bookId.localeCompare(b.bookId));
+    // ladder 分配行：找最早可用行（rowEndDay[row] < startDay）
     const rowEndDay=[];
     const weekRowMap=new Map();
-    sortedBooks.forEach(([bookId,seg])=>{
+    weekSegs.forEach(seg=>{
       let row=0;
       while(row<rowEndDay.length && rowEndDay[row]>=seg.startDay)row++;
-      weekRowMap.set(bookId,row);
+      // 同一本书多段：bookRow 取最早分配的行（保持视觉对齐不断跳）
+      if(!weekRowMap.has(seg.bookId))weekRowMap.set(seg.bookId,row);
+      // 更新该 row 的结束日（取所有段中最晚 endDay）
       if(row<rowEndDay.length)rowEndDay[row]=Math.max(rowEndDay[row],seg.endDay);
       else rowEndDay.push(seg.endDay);
     });
