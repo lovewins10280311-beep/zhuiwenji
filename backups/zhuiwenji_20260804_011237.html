@@ -1765,18 +1765,8 @@ function renderCal(){
     bookRowByWeek.set(weekRow,weekRowMap);
   }
 
-  /* ═══ 月视图渲染常量（提前定义，供后续 cells 渲染和 bar 渲染共用） ═══ */
-  const HEADER_H=34;        // 星期标题行高度
-  const TOP_OFFSET=24;       // 日期数字区高度
-  const BAR_H=14;            // bar 高度
-  const BAR_GAP=1;
-  const MAX_BOOKS_PER_DAY=5; // 月视图每个 day cell 最多直接显示 5 本书的色条
-  // 严格 5 行 cellH（用户要求"周间距严格执行只显示5行"）
-  const cellH=TOP_OFFSET+5*(BAR_H+BAR_GAP)+6;  // 24+5*15+6=105
-  const overlayTop=0;
-  const overlayH=HEADER_H+6*cellH;
-
   // 收集每个 day 涉及的段（按 bookRow ASC 排序）——用于"每天 5 本上限 +N 折叠"
+  const MAX_BOOKS_PER_DAY=5; // 月视图每个 day cell 最多直接显示 5 本书的色条
   const daySegList=new Map(); // day → [{id, seg, bookRow, weekRow}]
   for(let d=1;d<=daysIn;d++){
     const list=[];
@@ -1846,7 +1836,17 @@ function renderCal(){
        - 列号必须取模 (lead+day-1)%7，落在 0-6，否则月末/跨周段的 left 百分比会溢出屏幕
        - 纵向定位：bar 的 top = 星期标题行高 + 周行号×固定格高 + 日期区偏移 + 书序行偏移
        - overlay 用 absolute + JS 显式高度（不用 grid 子元素，Safari 上 grid-row stretch 不稳定）
-    cellH/TOP_OFFSET/BAR_H 等已在 bookRowByWeek 计算后提前声明 */
+    每格高度固定紧凑(62px)，不随书本数量膨胀，周间距恒定 */
+  const HEADER_H=34;        // 星期标题行高度
+  const TOP_OFFSET=24;       // 日期数字区高度
+  const BAR_H=14;            // bar 高度
+  const BAR_GAP=1;
+  // 严格 5 行 cellH（用户要求）
+  const cellH=TOP_OFFSET+5*(BAR_H+BAR_GAP)+6;  // 24+5*15+6=105
+  // overlay 覆盖整个 board
+  const overlayTop=0;
+  const overlayH=HEADER_H+6*cellH;
+
   let barsHtml=`<div class="cal-bars-overlay" style="top:${overlayTop}px;height:${overlayH}px">`;
   bookSegments.forEach((segs,id)=>{
     const b=bookMap[id];if(!b)return;
