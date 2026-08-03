@@ -1720,43 +1720,41 @@ function renderCal(){
     bookSegments.set(id,segs);
   });
 
-  /* ═══ 按周 ladder 行位分配（v30 关键修复） ═══
-     之前 v27 用"每本书当周内的最长连续段 DESC + 起始日 ASC" 排序 → 一本书占一个固定行，
-     前一本书结束后留下空位，后一本书也必须用下一行 → 视觉空缺、浪费行位。
-     现在改用 ladder 算法（与 Apple Calendar 多日事件一致）：
-       - 把当周内所有段按起始日 ASC 排序
-       - 每个段找最早可用行：该行当前 endDay < 当前段 startDay 才可用
-       - 同一本书多段时，bookRow 取最早分配的行（保持视觉对齐）
-     这样"爱播先别急 20-22"结束后，"雪人爱上圣 23-25"可接续同 row 0，无空缺。 */
+  /* ═══ 按周 bookRow 重排（v27 关键修复） ═══
+     之前用全局 bookGlobalRow（一本书一月内一个固定行号），13 本书就有 0-12 行；
+     渲染时 Math.min(...,4) 把 5+ 的书全压到第 5 行 → 多本书重叠成团。
+     现在改为：每周独立分配 bookRow。每周内按"该周内最长连续段 DESC → 起始日 ASC → id ASC"排序。
+     同一本书跨周时，每周都重排（与 Apple Calendar 跨周事件行为一致），
+     这样同一天同周内的 N 本书被分配到不同 bookRow（0,1,2,...），不再重叠。 */
   const bookRowByWeek=new Map(); // weekRow(0-5) → Map<bookId, bookRow>
   for(let weekRow=0;weekRow<6;weekRow++){
-    // 收集当周内所有段（不按 bookId 合并，按段独立参与 ladder）
-    const weekSegs=[];
-    bookSegments.forEach((segs,bookId)=>{
+    const weekBooksInfo=new Map(); // bookId → {maxStreak, firstDay}
+    bookSegments.forEach((segs,id)=>{
+      let maxStreak=0,firstDay=null;
       segs.forEach(seg=>{
         const segStartCol=(lead+seg.startDay-1);
         const segEndCol=(lead+seg.endDay-1);
         const segWeekStart=Math.floor(segStartCol/7);
         const segWeekEnd=Math.floor(segEndCol/7);
         if(segWeekStart<=weekRow && segWeekEnd>=weekRow){
-          weekSegs.push({bookId,startDay:seg.startDay,endDay:seg.endDay});
+          // 这本书在当前周有段
+          const segLen=seg.endDay-seg.startDay+1;
+          if(segLen>maxStreak)maxStreak=segLen;
+          if(firstDay===null || seg.startDay<firstDay)firstDay=seg.startDay;
         }
       });
+      if(maxStreak>0)weekBooksInfo.set(id,{maxStreak,firstDay});
     });
-    // 排序：起始日 ASC → 同日 endDay DESC（更长段优先） → id ASC（稳定）
-    weekSegs.sort((a,b)=>a.startDay-b.startDay || b.endDay-a.endDay || a.bookId.localeCompare(b.bookId));
-    // ladder 分配行：找最早可用行（rowEndDay[row] < startDay）
-    const rowEndDay=[];
+    // 排序：周内最长连续 DESC → 起始日 ASC → id ASC
     const weekRowMap=new Map();
-    weekSegs.forEach(seg=>{
-      let row=0;
-      while(row<rowEndDay.length && rowEndDay[row]>=seg.startDay)row++;
-      // 同一本书多段：bookRow 取最早分配的行（保持视觉对齐不断跳）
-      if(!weekRowMap.has(seg.bookId))weekRowMap.set(seg.bookId,row);
-      // 更新该 row 的结束日（取所有段中最晚 endDay）
-      if(row<rowEndDay.length)rowEndDay[row]=Math.max(rowEndDay[row],seg.endDay);
-      else rowEndDay.push(seg.endDay);
-    });
+    [...weekBooksInfo.entries()]
+      .sort((a,b)=>{
+        const sDiff=b[1].maxStreak-a[1].maxStreak;
+        if(sDiff!==0)return sDiff;
+        if(a[1].firstDay!==b[1].firstDay)return a[1].firstDay-b[1].firstDay;
+        return a[0].localeCompare(b[0]);
+      })
+      .forEach(([id],idx)=>weekRowMap.set(id,idx));
     bookRowByWeek.set(weekRow,weekRowMap);
   }
 
@@ -1812,7 +1810,7 @@ function renderCal(){
     const accent=accentColor(id);
     const bg=hexA(accent,0.55);
     const full=esc(b.title);
-    const disp=esc(b.title);
+    const disp=esc(b.title.length>5?b.title.slice(0,5):b.title);
     segs.forEach(seg=>{
       // 取模列号(0-6)
       const colStart=(lead+seg.startDay-1)%7;
