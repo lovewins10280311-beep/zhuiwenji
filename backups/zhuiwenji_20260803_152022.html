@@ -332,11 +332,11 @@
   .dv-panel{flex:1;position:relative;min-width:0}
   .dv-slot{position:absolute;left:0;right:0;height:1px;background:var(--line-2);opacity:.5}
   .dv-event{position:absolute;left:6px;right:6px;min-height:24px;padding:4px 8px;border-radius:6px;
-    color:#666;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;
+    color:#3a3a3a;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;
     box-shadow:0 1px 2px rgba(0,0,0,.06);transition:transform .12s}
   .dv-event:hover{transform:translateX(2px)}
   .dv-event:active{transform:scale(.98)}
-  .dv-time{font-size:11px;font-weight:700;color:#666;flex-shrink:0;opacity:.85;font-variant-numeric:tabular-nums}
+  .dv-time{font-size:11px;font-weight:700;color:#3a3a3a;flex-shrink:0;opacity:.75;font-variant-numeric:tabular-nums}
   .dv-title{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
   .cal-month-sum{display:flex;gap:18px;margin-top:6px;font-size:12px;color:var(--text-2);flex-wrap:wrap;font-weight:600}
 
@@ -461,7 +461,7 @@
      独立 absolute 定位层，每本书一根/多根横跨多日的 bar，按全局行号定位。
      浅色背景 + 左侧 4px 深色"主题色块" + 深色文字，模拟 Apple Calendar 多日事件条。 */
   .cal-bars-overlay{position:absolute;left:0;right:0;pointer-events:none;overflow:hidden;z-index:1}
-  .cal-bk-b{font-size:10px;line-height:1.2;color:#666;font-weight:600;
+  .cal-bk-b{font-size:10px;line-height:1.2;color:#3a3a3a;font-weight:600;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
     transition:opacity .12s,box-shadow .12s;border-radius:5px;display:flex;align-items:center;padding:0 6px;
     box-sizing:border-box;max-width:100%}
@@ -1781,7 +1781,7 @@ function renderCal(){
   bookSegments.forEach((segs,id)=>{
     const b=bookMap[id];if(!b)return;
     const accent=accentColor(id);
-    const bg=hexA(accent,0.45);
+    const bg=hexA(accent,0.65);
     const full=esc(b.title);
     const disp=esc(b.title.length>5?b.title.slice(0,5):b.title);
     segs.forEach(seg=>{
@@ -1830,7 +1830,7 @@ function renderCal(){
     if(a.weekRow!==b.weekRow)return a.weekRow-b.weekRow;
     return a.bookRow-b.bookRow;
   });
-  const lg=uniqueLegend.map(({id})=>{const b=bookMap[id];const c=bookColor(id);return `<div class="lg"><i class="sw" style="background:${hexA(c,0.45)};border-left:3px solid ${c}"></i><span>${esc(b.title)}</span></div>`}).join('');
+  const lg=uniqueLegend.map(({id})=>{const b=bookMap[id];const c=bookColor(id);return `<div class="lg"><i class="sw" style="background:${hexA(c,0.65)};border-left:3px solid ${c}"></i><span>${esc(b.title)}</span></div>`}).join('');
   document.getElementById('calLegend').innerHTML=lg;
  }catch(err){
   console.error('renderCal error:',err);
@@ -1895,32 +1895,14 @@ function renderDayDetail(){
   for(let h=DAY_START;h<DAY_END;h++){
     panelHtml+=`<div class="dv-slot" style="top:${(h-DAY_START)*HOUR_H}px"></div>`;
   }
-  // 事件按 30 分钟桶分组：同一桶内的 events 横向并列，避免重叠
-  // （追更场景下同半小时内多次「记一笔」会自然落在同桶）
-  const BUCKET_MIN=30;
-  const buckets=new Map(); // bucketKey → [events]
-  events.forEach(ev=>{
-    const k=Math.floor(ev.hm/BUCKET_MIN);
-    if(!buckets.has(k))buckets.set(k,[]);
-    buckets.get(k).push(ev);
-  });
-  // 桶内按时间排序，保证横向并列时左侧是较早的事件
-  buckets.forEach(arr=>arr.sort((a,b)=>a.hm-b.hm||a.ts-b.ts));
-
   events.forEach(ev=>{
     const b=bookMap[ev.bookId];if(!b)return;
     const c=bookColor(ev.bookId);
-    const bg=hexA(c,0.45), accent=c;
+    const bg=hexA(c,0.65), accent=c;
     const top=Math.max(0,(ev.hm-DAY_START*60)/60*HOUR_H-12);
     const dt=new Date(ev.ts);
     const hhmm=String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
-    // 找当前 ev 所在的桶，计算它在桶内的列索引和总列数
-    const k=Math.floor(ev.hm/BUCKET_MIN);
-    const arr=buckets.get(k);
-    const colIdx=arr.indexOf(ev);
-    const colCount=arr.length;
-    // 横向并列：width = (100%-12px) / colCount，左偏移 = colIdx × (100%-12px) / colCount + 6px
-    panelHtml+=`<div class="dv-event" style="top:${top}px;left:calc(6px + ${colIdx} * (100% - 12px) / ${colCount});width:calc((100% - 12px) / ${colCount} - 2px);background:${bg};border-left:3px solid ${accent}" onclick="openDetail('${ev.bookId}')">
+    panelHtml+=`<div class="dv-event" style="top:${top}px;background:${bg};border-left:3px solid ${accent}" onclick="openDetail('${ev.bookId}')">
       <span class="dv-time">${hhmm}</span>
       <span class="dv-title">${esc(b.title)}</span>
     </div>`;
