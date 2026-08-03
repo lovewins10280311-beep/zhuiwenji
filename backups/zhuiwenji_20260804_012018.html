@@ -457,8 +457,8 @@
     display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3);padding-left:0}
   .cal-cell.sel .cal-dnum{color:var(--accent)}
   .cal-cell.sel{background:rgba(124,58,237,.14);box-shadow:inset 0 0 0 2px rgba(124,58,237,.2)}
-  /* +N 折叠按钮：每天 bookRow ≥ 5 的隐藏书目数 —— 放 cell 底部紧贴 */
-  .cal-more{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;cursor:pointer;line-height:1.2;box-shadow:0 1px 3px rgba(124,58,237,.35);transition:transform .12s;z-index:10}
+  /* +N 折叠按钮：每天 bookRow ≥ 5 的隐藏书目数 —— 放 cell 底部 */
+  .cal-more{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;cursor:pointer;line-height:1.2;box-shadow:0 1px 3px rgba(124,58,237,.35);transition:transform .12s;z-index:10}
   .cal-more:hover{transform:translateX(-50%) scale(1.1)}
   /* ═══ Bars Overlay（v19 核心）：iPhone 日历多日事件风格 ═══
      独立 absolute 定位层，每本书一根/多根横跨多日的 bar，按全局行号定位。
@@ -1826,9 +1826,10 @@ function renderCal(){
     if(c===null){html+=`<div class="cal-cell out"></div>`;return;}
     const isToday=c.key===t, isSel=c.key===selDay;
     const hidden=dayHiddenCount.get(c.d)||0;
-    // +N 按钮定位在 cell 底部（CSS bottom:2px 紧贴 cell 下边缘）
+    // +N 按钮定位在 cell 内第 5 行末尾（紧贴 bookRow=4 下方）
+    // cell 内坐标：top = TOP_OFFSET + 5*(BAR_H+BAR_GAP) = 第 5 行结束位置
     const moreBtn=hidden>0
-      ? `<span class="cal-more" data-day="${c.key}">+${hidden}</span>`
+      ? `<span class="cal-more" style="top:${TOP_OFFSET + 5*(BAR_H+BAR_GAP)}px" data-day="${c.key}">+${hidden}</span>`
       : '';
     html+=`<div class="cal-cell ${isToday?'today':''} ${isSel?'sel':''}" onclick="selectDay('${c.key}')">
       <span class="cal-dnum">${c.d}</span>${moreBtn}
@@ -1991,15 +1992,13 @@ function renderDayDetail(){
   // （追更场景下同半小时内对同一本书多次「记一笔」自然合并）；
   // 不同书在同桶内仍横向并列。
   const BUCKET_MIN=30;
-  const buckets=new Map(); // bucketKey → Map<bookId, {types:Set, timestamps:[]}>
+  const buckets=new Map(); // bucketKey → Map<bookId, [timestamps]>
   events.forEach(ev=>{
     const k=Math.floor(ev.hm/BUCKET_MIN);
     if(!buckets.has(k))buckets.set(k,new Map());
     const bm=buckets.get(k);
-    if(!bm.has(ev.bookId))bm.set(ev.bookId,{types:new Set(),timestamps:[]});
-    const entry=bm.get(ev.bookId);
-    entry.types.add(ev.type);
-    entry.timestamps.push(ev.ts);
+    if(!bm.has(ev.bookId))bm.set(ev.bookId,[]);
+    bm.get(ev.bookId).push(ev.ts);
   });
 
   [...buckets.entries()].sort((a,b)=>a[0]-b[0]).forEach(([k,bm])=>{
@@ -2010,9 +2009,9 @@ function renderDayDetail(){
       const c=bookColor(bookId);
       const bg=hexA(c,0.55), accent=c;
       // 类型标签（v31）：三种事件类型
-      const hasAdd=entry.types.has('addBook');
-      const hasLog=entry.types.has('logRead');
-      const hasQuick=entry.types.has('quickMark');
+      const hasAdd=entry.types.includes('addBook');
+      const hasLog=entry.types.includes('logRead');
+      const hasQuick=entry.types.includes('quickMark');
       let typeLabel,typeColor;
       if(hasAdd){typeLabel='📚 添加';typeColor='#7C3AED'}
       else if(hasLog){typeLabel='📖 记一笔';typeColor='#10B981'}
