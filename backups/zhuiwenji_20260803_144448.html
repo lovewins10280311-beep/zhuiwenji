@@ -1668,30 +1668,6 @@ function renderCal(){
     if(daySet.size>0)bookMonthDays.set(sp.id,daySet);
   });
 
-  /* 每本书的连续阅读段 [{startDay,endDay}]（用于跨日 bar 横铺定位） */
-  const bookSegments=new Map();
-  bookMonthDays.forEach((days,id)=>{
-    const sorted=[...days].sort((a,b)=>a-b);
-    const segs=[];let i=0;
-    while(i<sorted.length){
-      let j=i+1;
-      while(j<sorted.length && sorted[j]===sorted[j-1]+1)j++;
-      // 关键修复：把连续段按周边界切分成多个"一周内子段"，每段列号必落在 0-6。
-      // 否则跨周/月末的段会被算成全局列号(可到 36)，left 百分比直接溢出屏幕。
-      const segEnd=sorted[j-1];
-      let segStart=sorted[i];
-      while(segStart<=segEnd){
-        const startCol=(lead+segStart-1)%7;
-        const weekEndDay=segStart+(6-startCol); // 本周最后一天(列=6)
-        const thisEnd=Math.min(segEnd,weekEndDay);
-        segs.push({startDay:segStart,endDay:thisEnd});
-        segStart=thisEnd+1;
-      }
-      i=j;
-    }
-    bookSegments.set(id,segs);
-  });
-
   /* ═══ 按周 bookRow 重排（v27 关键修复） ═══
      之前用全局 bookGlobalRow（一本书一月内一个固定行号），13 本书就有 0-12 行；
      渲染时 Math.min(...,4) 把 5+ 的书全压到第 5 行 → 多本书重叠成团。
@@ -1729,6 +1705,30 @@ function renderCal(){
       .forEach(([id],idx)=>weekRowMap.set(id,idx));
     bookRowByWeek.set(weekRow,weekRowMap);
   }
+
+  /* 每本书的连续阅读段 [{startDay,endDay}]（用于跨日 bar 横铺定位） */
+  const bookSegments=new Map();
+  bookMonthDays.forEach((days,id)=>{
+    const sorted=[...days].sort((a,b)=>a-b);
+    const segs=[];let i=0;
+    while(i<sorted.length){
+      let j=i+1;
+      while(j<sorted.length && sorted[j]===sorted[j-1]+1)j++;
+      // 关键修复：把连续段按周边界切分成多个"一周内子段"，每段列号必落在 0-6。
+      // 否则跨周/月末的段会被算成全局列号(可到 36)，left 百分比直接溢出屏幕。
+      const segEnd=sorted[j-1];
+      let segStart=sorted[i];
+      while(segStart<=segEnd){
+        const startCol=(lead+segStart-1)%7;
+        const weekEndDay=segStart+(6-startCol); // 本周最后一天(列=6)
+        const thisEnd=Math.min(segEnd,weekEndDay);
+        segs.push({startDay:segStart,endDay:thisEnd});
+        segStart=thisEnd+1;
+      }
+      i=j;
+    }
+    bookSegments.set(id,segs);
+  });
 
   for(let d=1;d<=daysIn;d++){
     const key=dstr(calY,calM,d);
