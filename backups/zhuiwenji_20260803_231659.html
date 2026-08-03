@@ -457,9 +457,6 @@
     display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 8px rgba(124,58,237,.3);padding-left:0}
   .cal-cell.sel .cal-dnum{color:var(--accent)}
   .cal-cell.sel{background:rgba(124,58,237,.14);box-shadow:inset 0 0 0 2px rgba(124,58,237,.2)}
-  /* +N 折叠按钮：每天 bookRow ≥ 5 的隐藏书目数 */
-  .cal-more{position:absolute;top:2px;right:3px;font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:10px;padding:1px 5px;cursor:pointer;line-height:1.2;box-shadow:0 1px 3px rgba(124,58,237,.35);transition:transform .12s}
-  .cal-more:hover{transform:scale(1.1)}
   /* ═══ Bars Overlay（v19 核心）：iPhone 日历多日事件风格 ═══
      独立 absolute 定位层，每本书一根/多根横跨多日的 bar，按全局行号定位。
      浅色背景 + 左侧 4px 深色"主题色块" + 深色文字，模拟 Apple Calendar 多日事件条。 */
@@ -1765,32 +1762,6 @@ function renderCal(){
     bookRowByWeek.set(weekRow,weekRowMap);
   }
 
-  // 收集每个 day 涉及的段（按 bookRow ASC 排序）——用于"每天 5 本上限 +N 折叠"
-  const MAX_BOOKS_PER_DAY=5; // 月视图每个 day cell 最多直接显示 5 本书的色条
-  const daySegList=new Map(); // day → [{id, seg, bookRow, weekRow}]
-  for(let d=1;d<=daysIn;d++){
-    const list=[];
-    bookSegments.forEach((segs,id)=>{
-      segs.forEach(seg=>{
-        if(d>=seg.startDay && d<=seg.endDay){
-          const segStartCol=(lead+seg.startDay-1);
-          const weekRow=Math.floor(segStartCol/7);
-          const bookRow=bookRowByWeek.get(weekRow)?.get(id)??-1;
-          if(bookRow>=0)list.push({id,seg,bookRow,weekRow});
-        }
-      });
-    });
-    list.sort((a,b)=>a.bookRow-b.bookRow || a.seg.startDay-b.seg.startDay || a.id.localeCompare(b.id));
-    daySegList.set(d,list);
-  }
-  // 每天 bookRow ≥ MAX_BOOKS_PER_DAY 的段数（即折叠的 +N）
-  const dayHiddenCount=new Map();
-  for(let d=1;d<=daysIn;d++){
-    const list=daySegList.get(d);
-    const hidden=list.filter(x=>x.bookRow>=MAX_BOOKS_PER_DAY).length;
-    if(hidden>0)dayHiddenCount.set(d,hidden);
-  }
-
   for(let d=1;d<=daysIn;d++){
     const key=dstr(calY,calM,d);
     const cover=[];
@@ -1811,16 +1782,12 @@ function renderCal(){
   const wd=['日','一','二','三','四','五','六'];
   let html=wd.map(w=>`<div class="cal-wd">${w}</div>`).join('');
 
-  /* 渲染：单元格(日期数字 + +N 折叠按钮) + bars overlay */
+  /* 渲染：单元格(仅含日期数字) + bars overlay(absolute 定位横跨多日) */
   cells.forEach(c=>{
     if(c===null){html+=`<div class="cal-cell out"></div>`;return;}
     const isToday=c.key===t, isSel=c.key===selDay;
-    const hidden=dayHiddenCount.get(c.d)||0;
-    const moreBtn=hidden>0
-      ? `<span class="cal-more" onclick="event.stopPropagation();selectDay('${c.key}')">+${hidden}</span>`
-      : '';
     html+=`<div class="cal-cell ${isToday?'today':''} ${isSel?'sel':''}" onclick="selectDay('${c.key}')">
-      <span class="cal-dnum">${c.d}</span>${moreBtn}
+      <span class="cal-dnum">${c.d}</span>
     </div>`;
   });
 
@@ -1864,7 +1831,7 @@ function renderCal(){
       // 按周取 bookRow：每周独立排序
       const weekMap=bookRowByWeek.get(weekRow);
       const bookRow=weekMap?weekMap.get(id):-1;
-      if(bookRow===undefined || bookRow>=MAX_BOOKS_PER_DAY)return;
+      if(bookRow===undefined)return;
       const left=colStart/7*100;
       const width=colSpan/7*100;
       // top = 星期标题行高 + 周行号×格高 + 日期区偏移(TOP_OFFSET) + 书序行偏移
@@ -1935,40 +1902,24 @@ function renderDayDetail(){
     openMask('dayViewMask');return;
   }
 
-  /* ═══ 收集三类事件并按时间戳排序（v31 核心）═══
-     1. 「添加书籍」事件：b.addTime 转 yyyy-mm-dd = selDay
-     2. 「今日已读」事件：zwj_booktimes[selDay][bookId] 各 ts，且 bdDay[bookId]===0
-     3. 「记一笔」事件：zwj_booktimes[selDay][bookId] 各 ts，且 bdDay[bookId]>0
-     所有事件按 ts ASC 排序展示；历史数据自动归入对应日期。 */
+  /* ═══ 纵向时间轴（v19 核心）═══
+     左侧 07:00-24:00 时间刻度，右侧每本书按真实【记一笔/今日已读】时间戳定位。 */
+  const HOUR_H=44;   // 每小时占 44px
+  const DAY_START=7; // 显示起点 07:00
+  const DAY_END=24;  // 显示终点
+  const totalH=(DAY_END-DAY_START)*HOUR_H;
+
+  // 收集所有时间戳事件
   const events=[];
-
-  // 1. 添加书籍事件
-  getBooks().forEach(b=>{
-    if(b.addTime){
-      const d2=new Date(b.addTime);
-      const addKey=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
-      if(addKey===selDay){
-        const hm=d2.getHours()*60+d2.getMinutes();
-        events.push({hm,ts:b.addTime,bookId:b.id,type:'addBook'});
-        if(!idSet.has(b.id))idSet.add(b.id);
-      }
-    }
-  });
-
-  // 2 & 3. 今日已读 / 记一笔：基于 zwj_booktimes + zwj_bookday 区分
-  Object.keys(tsDay).forEach(bookId=>{
-    const sec=bdDay[bookId]||0;
-    const isQuick=sec===0;
-    tsDay[bookId].forEach(ts=>{
+  books.forEach(b=>{
+    const times=(tsDay[b.id]||[]).slice().sort((a,b)=>a-b);
+    times.forEach(ts=>{
       const dt=new Date(ts);
       const hm=dt.getHours()*60+dt.getMinutes();
-      events.push({hm,ts,bookId,type:isQuick?'quickMark':'logRead'});
+      events.push({hm,bookId:b.id,ts});
     });
   });
-
-  events.sort((a,b)=>a.ts-b.ts);
-  // books 列表更新（包含 addBook 的新书）
-  // 注：原 books 已包含；addBook 加入 idSet 让 books 包含
+  events.sort((a,b)=>a.hm-b.hm||a.ts-b.ts);
 
   // 时间刻度 HTML
   let scaleHtml='<div class="dv-scale">';
@@ -1998,20 +1949,12 @@ function renderDayDetail(){
   [...buckets.entries()].sort((a,b)=>a[0]-b[0]).forEach(([k,bm])=>{
     const colCount=bm.size;
     let colIdx=0;
-    bm.forEach((entry,bookId)=>{
+    bm.forEach((timestamps,bookId)=>{
       const b=bookMap[bookId];if(!b)return;
       const c=bookColor(bookId);
       const bg=hexA(c,0.55), accent=c;
-      // 类型标签（v31）：三种事件类型
-      const hasAdd=entry.types.includes('addBook');
-      const hasLog=entry.types.includes('logRead');
-      const hasQuick=entry.types.includes('quickMark');
-      let typeLabel,typeColor;
-      if(hasAdd){typeLabel='📚 添加';typeColor='#7C3AED'}
-      else if(hasLog){typeLabel='📖 记一笔';typeColor='#10B981'}
-      else{typeLabel='✓ 今日已读';typeColor='#3B82F6'}
       // 长色条：从首时间戳 top 到末时间戳 bottom
-      const sortedTs=entry.timestamps.slice().sort((a,b)=>a-b);
+      const sortedTs=timestamps.slice().sort((a,b)=>a-b);
       const startDt=new Date(sortedTs[0]);
       const endDt=new Date(sortedTs[sortedTs.length-1]);
       const startHm=startDt.getHours()*60+startDt.getMinutes();
@@ -2022,8 +1965,7 @@ function renderDayDetail(){
       const hhmm=String(startDt.getHours()).padStart(2,'0')+':'+String(startDt.getMinutes()).padStart(2,'0');
       const multiMark=sortedTs.length>1?` ×${sortedTs.length}`:'';
       panelHtml+=`<div class="dv-event" style="top:${startTop}px;height:${height}px;left:calc(6px + ${colIdx} * (100% - 12px) / ${colCount});width:calc((100% - 12px) / ${colCount} - 2px);background:${bg};border-left:3px solid ${accent}" onclick="openDetail('${bookId}')">
-        <span class="dv-time" style="color:${typeColor}">${typeLabel}</span>
-        <span class="dv-time-sub">${hhmm}${multiMark}</span>
+        <span class="dv-time">${hhmm}${multiMark}</span>
         <span class="dv-title">${esc(b.title)}</span>
       </div>`;
       colIdx++;
