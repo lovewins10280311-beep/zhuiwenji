@@ -1699,6 +1699,18 @@ function renderCal(){
     if(daySet.size>0)bookMonthDays.set(sp.id,daySet);
   });
 
+  // 同步日视图口径：当月「添加书籍」的日期也点亮色条（即使该书尚未开始阅读），
+  // 避免月视图与日视图本数对不上（日视图会把 addBook 当天也计入）
+  getBooks().forEach(b=>{
+    if(!b.addTime)return;
+    const ad=new Date(b.addTime);
+    if(ad.getFullYear()===calY && ad.getMonth()===calM){
+      const dd=ad.getDate();
+      if(!bookMonthDays.has(b.id))bookMonthDays.set(b.id,new Set());
+      bookMonthDays.get(b.id).add(dd);
+    }
+  });
+
   /* 每本书的连续阅读段 [{startDay,endDay}]（用于跨日 bar 横铺定位） */
   const bookSegments=new Map();
   bookMonthDays.forEach((days,id)=>{
@@ -2007,16 +2019,27 @@ function renderDayDetail(){
     panelHtml+=`<div class="dv-slot" style="top:${(h-DAY_START)*HOUR_H}px"></div>`;
   }
 
-  // 构建区间：每本书从当天最早时间戳到最晚时间戳
-  const intervals=Object.keys(byBook).map(bookId=>{
+  // 构建区间：每本书按「间隔 > 2 小时」拆分为多个阅读时段，
+  // 每个时段一条短色条（避免 addBook 凌晨 + 中午 fallback 被拉成 1am→12pm 的长条）
+  const GAP_MIN=120;
+  const intervals=[];
+  Object.keys(byBook).forEach(bookId=>{
     const tsArr=byBook[bookId].slice().sort((a,b)=>a-b);
-    const startDt=new Date(tsArr[0]);
-    const endDt=new Date(tsArr[tsArr.length-1]);
-    const startHm=startDt.getHours()*60+startDt.getMinutes();
-    const endHm=endDt.getHours()*60+endDt.getMinutes();
-    const startTop=Math.max(0,(startHm-DAY_START*60)/60*HOUR_H-12);
-    const endTop=Math.max(startTop+24,(endHm-DAY_START*60)/60*HOUR_H+12);
-    return {bookId,startTop,endTop,height:endTop-startTop};
+    let sess=[tsArr[0]];
+    const pushSess=()=>{
+      const startDt=new Date(sess[0]);
+      const endDt=new Date(sess[sess.length-1]);
+      const startHm=startDt.getHours()*60+startDt.getMinutes();
+      const endHm=endDt.getHours()*60+endDt.getMinutes();
+      const startTop=Math.max(0,(startHm-DAY_START*60)/60*HOUR_H-12);
+      const endTop=Math.max(startTop+24,(endHm-DAY_START*60)/60*HOUR_H+12);
+      intervals.push({bookId,startTop,endTop,height:endTop-startTop});
+    };
+    for(let i=1;i<tsArr.length;i++){
+      if(tsArr[i]-tsArr[i-1] > GAP_MIN*60000){ pushSess(); sess=[tsArr[i]]; }
+      else sess.push(tsArr[i]);
+    }
+    pushSess();
   });
 
   // 泳道布局：重叠区间横向分列，不重叠则共享列，即使时间相差不远也不重叠
