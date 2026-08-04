@@ -1748,9 +1748,10 @@ function renderCal(){
       });
       if(best)bookMainSeg.set(bookId,best);
     });
-    // 按最长连续 DESC + 起始日 ASC + id ASC 排序（连续长的书优先占 row=0）
+    // 按「起始日 ASC → 最长连续 DESC → id ASC」排序（先开始的书先占行，
+    // 后续书可从前面行结束后的空缺继续填补，消除视觉空档）
     const sortedBooks=[...bookMainSeg.entries()].sort((a,b)=>
-      b[1].len-a[1].len || a[1].startDay-b[1].startDay || a[0].localeCompare(b[0])
+      a[1].startDay-b[1].startDay || b[1].len-a[1].len || a[0].localeCompare(b[0])
     );
     // ladder 分配：找最早可用行（空缺位置填补）
     const rowEndDay=[];
@@ -1771,8 +1772,8 @@ function renderCal(){
   const BAR_H=14;            // bar 高度
   const BAR_GAP=1;
   const MAX_BOOKS_PER_DAY=5; // 月视图每个 day cell 最多直接显示 5 本书的色条
-  // 严格 5 行 cellH（用户要求"周间距严格执行只显示5行"）
-  const cellH=TOP_OFFSET+5*(BAR_H+BAR_GAP)+6;  // 24+5*15+6=105
+  // 严格 5 行色条 + +N 按钮独立空间 = 121px
+  const cellH=TOP_OFFSET+5*(BAR_H+BAR_GAP)+6+16;  // 24+5*15+6+16=121
   const overlayTop=0;
   const overlayH=HEADER_H+6*cellH;
 
@@ -1934,12 +1935,16 @@ function renderDayDetail(){
     openMask('dayViewMask');return;
   }
 
-  /* ═══ 收集三类事件并按时间戳排序（v31 核心）═══
+  /* ═══ 收集三类事件并按时间戳排序（v31.5 关键修复）═══
      1. 「添加书籍」事件：b.addTime 转 yyyy-mm-dd = selDay
      2. 「今日已读」事件：zwj_booktimes[selDay][bookId] 各 ts，且 bdDay[bookId]===0
      3. 「记一笔」事件：zwj_booktimes[selDay][bookId] 各 ts，且 bdDay[bookId]>0
-     所有事件按 ts ASC 排序展示；历史数据自动归入对应日期。 */
+     历史数据兼容：v25 之前没有 zwj_booktimes，对"bdDay 有记录但 tsDay 为空"的书
+     用 selDay 中午 12:00 作为 fallback ts 显示（保证历史数据不丢失）。 */
   const events=[];
+  // 收集 selDay 所有"应当出现"的书（bdDay 有记录 + 落在阅读区间 + 当天添加）
+  const allDayBookIds=new Set(Object.keys(bdDay));
+  spanBooks.forEach(s=>allDayBookIds.add(s.id));
 
   // 1. 添加书籍事件
   getBooks().forEach(b=>{
@@ -1949,35 +1954,43 @@ function renderDayDetail(){
       if(addKey===selDay){
         const hm=d2.getHours()*60+d2.getMinutes();
         events.push({hm,ts:b.addTime,bookId:b.id,type:'addBook'});
-        if(!idSet.has(b.id))idSet.add(b.id);
+        allDayBookIds.add(b.id);
       }
     }
   });
 
-  // 2 & 3. 今日已读 / 记一笔：基于 zwj_booktimes + zwj_bookday 区分
-  Object.keys(tsDay).forEach(bookId=>{
+  // 2 & 3. 今日已读 / 记一笔：优先用 tsDay，没有 ts 时 fallback 到中午 12:00
+  allDayBookIds.forEach(bookId=>{
     const sec=bdDay[bookId]||0;
     const isQuick=sec===0;
-    tsDay[bookId].forEach(ts=>{
-      const dt=new Date(ts);
-      const hm=dt.getHours()*60+dt.getMinutes();
-      events.push({hm,ts,bookId,type:isQuick?'quickMark':'logRead'});
-    });
+    if(tsDay[bookId] && tsDay[bookId].length>0){
+      tsDay[bookId].forEach(ts=>{
+        const dt=new Date(ts);
+        const hm=dt.getHours()*60+dt.getMinutes();
+        events.push({hm,ts,bookId,type:isQuick?'quickMark':'logRead'});
+      });
+    } else {
+      // 历史数据 fallback：用 selDay 中午作为伪 ts（保证历史记录不丢失）
+      const fallbackTs=new Date(selDay+'T12:00:00').getTime();
+      events.push({hm:12*60,ts:fallbackTs,bookId,type:isQuick?'quickMark':'logRead'});
+    }
   });
 
   events.sort((a,b)=>a.ts-b.ts);
   // books 列表更新（包含 addBook 的新书）
   // 注：原 books 已包含；addBook 加入 idSet 让 books 包含
 
-  /* 时间轴参数（HOUR_H 每小时像素 / DAY_START 显示起点 / DAY_END 显示终点） */
+  /* 时间轴参数（HOUR_H 每小时像素 / DAY_START 显示起点 / DAY_END 显示终点）
+     v31.6 修复：DAY_START 改为 0（全天 0-24 时），凌晨添加/阅读事件不再被
+     Math.max(0,…) 夹到 07:00 行造成"时间错乱" */
   const HOUR_H=44;
-  const DAY_START=7;
+  const DAY_START=0;
   const DAY_END=24;
   const totalH=(DAY_END-DAY_START)*HOUR_H;
 
-  // 时间刻度 HTML
+  // 时间刻度 HTML（h<DAY_END：生成 0..23 共 24 格，高度与 panel 严格对齐）
   let scaleHtml='<div class="dv-scale">';
-  for(let h=DAY_START;h<=DAY_END;h++){
+  for(let h=DAY_START;h<DAY_END;h++){
     scaleHtml+=`<div class="dv-hour" style="height:${HOUR_H}px"><span>${String(h).padStart(2,'0')}:00</span></div>`;
   }
   scaleHtml+='</div>';
