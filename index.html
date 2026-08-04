@@ -2022,14 +2022,6 @@ function renderDayDetail(){
       const b=bookMap[bookId];if(!b)return;
       const c=bookColor(bookId);
       const bg=hexA(c,0.55), accent=c;
-      // 类型标签（v31）：三种事件类型
-      const hasAdd=entry.types.has('addBook');
-      const hasLog=entry.types.has('logRead');
-      const hasQuick=entry.types.has('quickMark');
-      let typeLabel,typeColor;
-      if(hasAdd){typeLabel='📚 添加';typeColor='#7C3AED'}
-      else if(hasLog){typeLabel='📖 记一笔';typeColor='#10B981'}
-      else{typeLabel='✓ 今日已读';typeColor='#3B82F6'}
       // 长色条：从首时间戳 top 到末时间戳 bottom
       const sortedTs=entry.timestamps.slice().sort((a,b)=>a-b);
       const startDt=new Date(sortedTs[0]);
@@ -2039,11 +2031,7 @@ function renderDayDetail(){
       const startTop=Math.max(0,(startHm-DAY_START*60)/60*HOUR_H-12);
       const endTop=Math.max(startTop+24,(endHm-DAY_START*60)/60*HOUR_H+12);
       const height=endTop-startTop;
-      const hhmm=String(startDt.getHours()).padStart(2,'0')+':'+String(startDt.getMinutes()).padStart(2,'0');
-      const multiMark=sortedTs.length>1?` ×${sortedTs.length}`:'';
       panelHtml+=`<div class="dv-event" style="top:${startTop}px;height:${height}px;left:calc(6px + ${colIdx} * (100% - 12px) / ${colCount});width:calc((100% - 12px) / ${colCount} - 2px);background:${bg};border-left:3px solid ${accent}" onclick="openDetail('${bookId}')">
-        <span class="dv-time" style="color:${typeColor}">${typeLabel}</span>
-        <span class="dv-time-sub">${hhmm}${multiMark}</span>
         <span class="dv-title">${esc(b.title)}</span>
       </div>`;
       colIdx++;
