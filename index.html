@@ -1923,17 +1923,8 @@ function renderDayDetail(){
   const idSet=new Set();
   Object.keys(bdDay).forEach(id=>idSet.add(id));
   spanBooks.forEach(s=>idSet.add(s.id));
-  const books=[...idSet].map(id=>bookMap[id]).filter(Boolean);
 
   const [y,m,d]=selDay.split('-');
-  document.getElementById('dvTitle').innerHTML=
-    `${+m}月${+d}日 · <span class="muted" style="font-size:12px;font-weight:400">${books.length?('共 '+books.length+' 本'):''}</span>`;
-
-  if(!books.length){
-    document.getElementById('dvBody').innerHTML=
-      '<div style="padding:20px 8px;text-align:center"><div style="font-size:28px;margin-bottom:6px">📖</div><div class="muted" style="font-size:13px">这一天还没有阅读记录</div><div class="muted" style="font-size:11.5px;margin-top:4px">选一本书，记下今天的阅读</div></div>';
-    openMask('dayViewMask');return;
-  }
 
   /* ═══ 收集三类事件并按时间戳排序（v31.5 关键修复）═══
      1. 「添加书籍」事件：b.addTime 转 yyyy-mm-dd = selDay
@@ -1977,8 +1968,23 @@ function renderDayDetail(){
   });
 
   events.sort((a,b)=>a.ts-b.ts);
-  // books 列表更新（包含 addBook 的新书）
-  // 注：原 books 已包含；addBook 加入 idSet 让 books 包含
+
+  // 按书聚合为当天阅读区间（一本书一天只显示一条色条，避免重复名称）
+  const byBook={};
+  events.forEach(ev=>{
+    if(!byBook[ev.bookId]) byBook[ev.bookId]=[];
+    byBook[ev.bookId].push(ev.ts);
+  });
+
+  // 重新计算当天书籍列表（包含 addBook 的新书）并更新标题/空状态
+  const books=Object.keys(byBook).map(id=>bookMap[id]).filter(Boolean);
+  document.getElementById('dvTitle').innerHTML=
+    `${+m}月${+d}日 · <span class="muted" style="font-size:12px;font-weight:400">${books.length?('共 '+books.length+' 本'):''}</span>`;
+  if(!books.length){
+    document.getElementById('dvBody').innerHTML=
+      '<div style="padding:20px 8px;text-align:center"><div style="font-size:28px;margin-bottom:6px">📖</div><div class="muted" style="font-size:13px">这一天还没有阅读记录</div><div class="muted" style="font-size:11.5px;margin-top:4px">选一本书，记下今天的阅读</div></div>';
+    openMask('dayViewMask');return;
+  }
 
   /* 时间轴参数（HOUR_H 每小时像素 / DAY_START 显示起点 / DAY_END 显示终点）
      v31.6 修复：DAY_START 改为 0（全天 0-24 时），凌晨添加/阅读事件不再被
@@ -2000,42 +2006,37 @@ function renderDayDetail(){
   for(let h=DAY_START;h<DAY_END;h++){
     panelHtml+=`<div class="dv-slot" style="top:${(h-DAY_START)*HOUR_H}px"></div>`;
   }
-  // 事件按 (30分钟桶, bookId) 双重聚合：同桶内同一本书的多条记录合并为一条长色条
-  // （追更场景下同半小时内对同一本书多次「记一笔」自然合并）；
-  // 不同书在同桶内仍横向并列。
-  const BUCKET_MIN=30;
-  const buckets=new Map(); // bucketKey → Map<bookId, {types:Set, timestamps:[]}>
-  events.forEach(ev=>{
-    const k=Math.floor(ev.hm/BUCKET_MIN);
-    if(!buckets.has(k))buckets.set(k,new Map());
-    const bm=buckets.get(k);
-    if(!bm.has(ev.bookId))bm.set(ev.bookId,{types:new Set(),timestamps:[]});
-    const entry=bm.get(ev.bookId);
-    entry.types.add(ev.type);
-    entry.timestamps.push(ev.ts);
+
+  // 构建区间：每本书从当天最早时间戳到最晚时间戳
+  const intervals=Object.keys(byBook).map(bookId=>{
+    const tsArr=byBook[bookId].slice().sort((a,b)=>a-b);
+    const startDt=new Date(tsArr[0]);
+    const endDt=new Date(tsArr[tsArr.length-1]);
+    const startHm=startDt.getHours()*60+startDt.getMinutes();
+    const endHm=endDt.getHours()*60+endDt.getMinutes();
+    const startTop=Math.max(0,(startHm-DAY_START*60)/60*HOUR_H-12);
+    const endTop=Math.max(startTop+24,(endHm-DAY_START*60)/60*HOUR_H+12);
+    return {bookId,startTop,endTop,height:endTop-startTop};
   });
 
-  [...buckets.entries()].sort((a,b)=>a[0]-b[0]).forEach(([k,bm])=>{
-    const colCount=bm.size;
-    let colIdx=0;
-    bm.forEach((entry,bookId)=>{
-      const b=bookMap[bookId];if(!b)return;
-      const c=bookColor(bookId);
-      const bg=hexA(c,0.55), accent=c;
-      // 长色条：从首时间戳 top 到末时间戳 bottom
-      const sortedTs=entry.timestamps.slice().sort((a,b)=>a-b);
-      const startDt=new Date(sortedTs[0]);
-      const endDt=new Date(sortedTs[sortedTs.length-1]);
-      const startHm=startDt.getHours()*60+startDt.getMinutes();
-      const endHm=endDt.getHours()*60+endDt.getMinutes();
-      const startTop=Math.max(0,(startHm-DAY_START*60)/60*HOUR_H-12);
-      const endTop=Math.max(startTop+24,(endHm-DAY_START*60)/60*HOUR_H+12);
-      const height=endTop-startTop;
-      panelHtml+=`<div class="dv-event" style="top:${startTop}px;height:${height}px;left:calc(6px + ${colIdx} * (100% - 12px) / ${colCount});width:calc((100% - 12px) / ${colCount} - 2px);background:${bg};border-left:3px solid ${accent}" onclick="openDetail('${bookId}')">
-        <span class="dv-title">${esc(b.title)}</span>
-      </div>`;
-      colIdx++;
-    });
+  // 泳道布局：重叠区间横向分列，不重叠则共享列，即使时间相差不远也不重叠
+  intervals.sort((a,b)=>a.startTop-b.startTop || b.endTop-a.endTop);
+  const colEnds=[];
+  intervals.forEach(it=>{
+    let col=colEnds.findIndex(end=>end<=it.startTop);
+    if(col===-1){col=colEnds.length;colEnds.push(0)}
+    it.col=col;
+    colEnds[col]=it.endTop;
+  });
+  const colCount=colEnds.length||1;
+
+  intervals.forEach(it=>{
+    const b=bookMap[it.bookId];if(!b)return;
+    const c=bookColor(it.bookId);
+    const bg=hexA(c,0.55), accent=c;
+    panelHtml+=`<div class="dv-event" style="top:${it.startTop}px;height:${it.height}px;left:calc(6px + ${it.col} * (100% - 12px) / ${colCount});width:calc((100% - 12px) / ${colCount} - 2px);background:${bg};border-left:3px solid ${accent}" onclick="openDetail('${it.bookId}')">
+      <span class="dv-title">${esc(b.title)}</span>
+    </div>`;
   });
   panelHtml+=`</div>`;
 
