@@ -1735,47 +1735,38 @@ function renderCal(){
     bookSegments.set(id,segs);
   });
 
-  /* ═══ 按周 混合行位算法（v30.1） ═══
-     v27 "最长连续 DESC + 起始日 ASC"：每本书固定一行，前书结束后空缺被浪费
-     v30 纯 ladder：按段顺序填最早可用行，长段持续占 row=0 → 短段全挤到下方
-     现在用 v30.1 混合算法：
-       1. 每本书取"当周内最长连续段"作主段，按 len DESC + 起始日 ASC + id ASC 排序
-       2. ladder 分配：找最早可用行（rowEndDay[row] < startDay），让空缺被后续书填补
-       3. 同一本书多段 → bookRow 取主段的行（保持视觉对齐） */
-  const bookRowByWeek=new Map(); // weekRow(0-5) → Map<bookId, bookRow>
+  /* ═══ 按周 ladder：每个连续段独立分配行（v32）═══
+     v30.1/v31 给每本书在当周固定分配一行；同一本书在当周若出现多个不连续段，
+     短段会沿用长段的行，导致短段所在日和其他书重叠（如 8.6 基因红线/督主有病）。
+     改为给「每个 segment」独立 ladder 分牌：按段起始日 ASC → 段长度 DESC → id ASC
+     排序，找最早可用行（rowEndDay[row] < seg.startDay），从根上避免同周内的段重叠。 */
+  const segRowByWeek=new Map(); // weekRow(0-5) → [{id, seg, row}]
   for(let weekRow=0;weekRow<6;weekRow++){
-    // 收集每本书在当周的最长连续段（主段）
-    const bookMainSeg=new Map(); // bookId → {startDay, endDay, len}
+    const list=[];
     bookSegments.forEach((segs,bookId)=>{
-      let maxLen=0,best=null;
       segs.forEach(seg=>{
         const segStartCol=(lead+seg.startDay-1);
         const segEndCol=(lead+seg.endDay-1);
         const segWeekStart=Math.floor(segStartCol/7);
         const segWeekEnd=Math.floor(segEndCol/7);
         if(segWeekStart<=weekRow && segWeekEnd>=weekRow){
-          const len=seg.endDay-seg.startDay+1;
-          if(len>maxLen){maxLen=len;best={startDay:seg.startDay,endDay:seg.endDay,len}}
+          list.push({id:bookId,seg,startDay:seg.startDay,endDay:seg.endDay,len:seg.endDay-seg.startDay+1});
         }
       });
-      if(best)bookMainSeg.set(bookId,best);
     });
-    // 按「起始日 ASC → 最长连续 DESC → id ASC」排序（先开始的书先占行，
-    // 后续书可从前面行结束后的空缺继续填补，消除视觉空档）
-    const sortedBooks=[...bookMainSeg.entries()].sort((a,b)=>
-      a[1].startDay-b[1].startDay || b[1].len-a[1].len || a[0].localeCompare(b[0])
+    // 按起始日 ASC → 段长度 DESC → id ASC
+    list.sort((a,b)=>
+      a.startDay-b.startDay || b.len-a.len || a.id.localeCompare(b.id)
     );
-    // ladder 分配：找最早可用行（空缺位置填补）
     const rowEndDay=[];
-    const weekRowMap=new Map();
-    sortedBooks.forEach(([bookId,seg])=>{
+    list.forEach(item=>{
       let row=0;
-      while(row<rowEndDay.length && rowEndDay[row]>=seg.startDay)row++;
-      weekRowMap.set(bookId,row);
-      if(row<rowEndDay.length)rowEndDay[row]=Math.max(rowEndDay[row],seg.endDay);
-      else rowEndDay.push(seg.endDay);
+      while(row<rowEndDay.length && rowEndDay[row]>=item.startDay)row++;
+      item.seg.row=row;            // 把行号直接挂在 segment 上
+      if(row<rowEndDay.length)rowEndDay[row]=Math.max(rowEndDay[row],item.endDay);
+      else rowEndDay.push(item.endDay);
     });
-    bookRowByWeek.set(weekRow,weekRowMap);
+    segRowByWeek.set(weekRow,list);
   }
 
   /* ═══ 月视图渲染常量（提前定义，供后续 cells 渲染和 bar 渲染共用） ═══ */
@@ -1789,8 +1780,8 @@ function renderCal(){
   const overlayTop=0;
   const overlayH=HEADER_H+6*cellH;
 
-  // 收集每个 day 涉及的段（按 bookRow ASC 排序）——用于"每天 5 本上限 +N 折叠"
-  const daySegList=new Map(); // day → [{id, seg, bookRow, weekRow}]
+  // 收集每个 day 涉及的段（按 seg.row ASC 排序）——用于"每天 5 本上限 +N 折叠"
+  const daySegList=new Map(); // day → [{id, seg, row, weekRow}]
   for(let d=1;d<=daysIn;d++){
     const list=[];
     bookSegments.forEach((segs,id)=>{
@@ -1798,19 +1789,19 @@ function renderCal(){
         if(d>=seg.startDay && d<=seg.endDay){
           const segStartCol=(lead+seg.startDay-1);
           const weekRow=Math.floor(segStartCol/7);
-          const bookRow=bookRowByWeek.get(weekRow)?.get(id)??-1;
-          if(bookRow>=0)list.push({id,seg,bookRow,weekRow});
+          const row=seg.row??-1;
+          if(row>=0)list.push({id,seg,row,weekRow});
         }
       });
     });
-    list.sort((a,b)=>a.bookRow-b.bookRow || a.seg.startDay-b.seg.startDay || a.id.localeCompare(b.id));
+    list.sort((a,b)=>a.row-b.row || a.seg.startDay-b.seg.startDay || a.id.localeCompare(b.id));
     daySegList.set(d,list);
   }
-  // 每天 bookRow ≥ MAX_BOOKS_PER_DAY 的段数（即折叠的 +N）
+  // 每天 row ≥ MAX_BOOKS_PER_DAY 的段数（即折叠的 +N）
   const dayHiddenCount=new Map();
   for(let d=1;d<=daysIn;d++){
     const list=daySegList.get(d);
-    const hidden=list.filter(x=>x.bookRow>=MAX_BOOKS_PER_DAY).length;
+    const hidden=list.filter(x=>x.row>=MAX_BOOKS_PER_DAY).length;
     if(hidden>0)dayHiddenCount.set(d,hidden);
   }
 
@@ -1858,7 +1849,7 @@ function renderCal(){
        - 列号必须取模 (lead+day-1)%7，落在 0-6，否则月末/跨周段的 left 百分比会溢出屏幕
        - 纵向定位：bar 的 top = 星期标题行高 + 周行号×固定格高 + 日期区偏移 + 书序行偏移
        - overlay 用 absolute + JS 显式高度（不用 grid 子元素，Safari 上 grid-row stretch 不稳定）
-    cellH/TOP_OFFSET/BAR_H 等已在 bookRowByWeek 计算后提前声明 */
+    cellH/TOP_OFFSET/BAR_H 等已在 segRowByWeek 计算后提前声明 */
   let barsHtml=`<div class="cal-bars-overlay" style="top:${overlayTop}px;height:${overlayH}px">`;
   bookSegments.forEach((segs,id)=>{
     const b=bookMap[id];if(!b)return;
@@ -1872,14 +1863,13 @@ function renderCal(){
       const colEnd=(lead+seg.endDay-1)%7;
       const colSpan=colEnd-colStart+1;
       const weekRow=Math.floor((lead+seg.startDay-1)/7); // 第几周(0-5)
-      // 按周取 bookRow：每周独立排序
-      const weekMap=bookRowByWeek.get(weekRow);
-      const bookRow=weekMap?weekMap.get(id):-1;
-      if(bookRow===undefined || bookRow>=MAX_BOOKS_PER_DAY)return;
+      // v32：每个 segment 独立 ladder 行号，避免同周内多段重叠
+      const row=seg.row??-1;
+      if(row<0 || row>=MAX_BOOKS_PER_DAY)return;
       const left=colStart/7*100;
       const width=colSpan/7*100;
-      // top = 星期标题行高 + 周行号×格高 + 日期区偏移(TOP_OFFSET) + 书序行偏移
-      const top=HEADER_H + weekRow*cellH + TOP_OFFSET + bookRow*(BAR_H+BAR_GAP);
+      // top = 星期标题行高 + 周行号×格高 + 日期区偏移(TOP_OFFSET) + 段行偏移
+      const top=HEADER_H + weekRow*cellH + TOP_OFFSET + row*(BAR_H+BAR_GAP);
       barsHtml+=`<div class="cal-bk-b ${seg.startDay===seg.endDay?'single':'multi'}" style="position:absolute;left:calc(${left}% + 1px);width:calc(${width}% - 2px);top:${top}px;height:${BAR_H}px;background:${bg};border-left:3px solid ${accent};pointer-events:auto;overflow:hidden" title="${full}" onclick="event.stopPropagation();openDetail('${id}')">${disp}</div>`;
     });
   });
@@ -1894,12 +1884,12 @@ function renderCal(){
       ?`<span>涉及 <b>${monthBooks.size}</b> 本</span><span>阅读区间覆盖 <b>${coveredDays}</b> 天</span>`
       :`<span style="color:var(--text-3)">🌱 还没有阅读记录 · 添加书籍并「记一笔」开始追踪</span>`;
 
-  /* 图例：按"该书第一次出现所在周的 bookRow"顺序展示
-     同周内：周内最长连续 DESC；跨周：以第一周 bookRow 为准 */
+  /* 图例：按"该书第一次出现所在周的 seg.row"顺序展示
+     同周内：按段起始日/行号排序；跨周：以第一周 seg.row 为准 */
   const legendOrder=[];
-  bookRowByWeek.forEach((weekMap,weekRow)=>{
-    [...weekMap.entries()].forEach(([id,bookRow])=>{
-      legendOrder.push({id,weekRow,bookRow});
+  segRowByWeek.forEach((list,weekRow)=>{
+    list.forEach(item=>{
+      legendOrder.push({id:item.id,weekRow,row:item.seg.row??0});
     });
   });
   // 去重（同一本书可能多周出现），保留首次
@@ -1910,7 +1900,7 @@ function renderCal(){
   });
   uniqueLegend.sort((a,b)=>{
     if(a.weekRow!==b.weekRow)return a.weekRow-b.weekRow;
-    return a.bookRow-b.bookRow;
+    return a.row-b.row;
   });
   const lg=uniqueLegend.map(({id})=>{const b=bookMap[id];const c=bookColor(id);return `<div class="lg"><i class="sw" style="background:${hexA(c,0.55)};border-left:3px solid ${c}"></i><span>${esc(b.title)}</span></div>`}).join('');
   document.getElementById('calLegend').innerHTML=lg;
